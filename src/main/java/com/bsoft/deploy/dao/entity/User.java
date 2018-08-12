@@ -15,6 +15,15 @@ public class User {
     private Date createDt;
     private String loginName;
     private char status;
+    private String token;
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
 
     public String getId() {
         return id;

@@ -1,8 +1,12 @@
 package com.bsoft.deploy.file;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.util.StringUtils;
+
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * 遍历指定目录中的所有文件
@@ -10,7 +14,13 @@ import java.util.List;
  *
  * @author yangl
  */
+
 public class FileWalker {
+    private final static Logger logger = LoggerFactory.getLogger(FileWalker.class);
+
+    @Value("${appPath}")
+    private String appPath;
+
     private List<String> javaFiles = new ArrayList<>();
     private List<String> jsFiles = new ArrayList<>();
     private List<String> otherFiles = new ArrayList<>();
@@ -31,10 +41,47 @@ public class FileWalker {
         }
     }
 
+    /**
+     * 获取path路径下的文件列表
+     * @param path 文件路径
+     * @return 文件列表
+     */
+    public List<Map<String,Object>> getFileTree(String path) {
+        List<Map<String,Object>> files = new ArrayList<>();
+        if(StringUtils.isEmpty(path)) {
+            path = appPath;
+        }
+        File dir = new File(path);
+        if(dir.isDirectory()) {
+            for(File f : dir.listFiles()) {
+                Map<String,Object> fileNode = new HashMap<>(4);
+                fileNode.put("name",f.getName());
+                fileNode.put("path",f.getAbsolutePath());
+                fileNode.put("leaf",!f.isDirectory());
+                files.add(fileNode);
+            }
+        }
+        Collections.sort(files, new Comparator<Map<String, Object>>() {
+            @Override
+            public int compare(Map<String, Object> o1, Map<String, Object> o2) {
+                boolean leaf1 = (boolean)o1.get("leaf");
+                boolean leaf2 = (boolean)o2.get("leaf");
+                if(leaf1 && !leaf2) {
+                    return 1;
+                } else if(!leaf1 && leaf2) {
+                    return -1;
+                } else {
+                    return o1.get("name").toString().compareTo(o2.get("name").toString());
+                }
+            }
+        });
+        return files;
+    }
+
     private List<String> find(String filename, List<String> files) {
         List<String> finds = new ArrayList<>();
         for (String file : files) {
-            if (file.indexOf(filename) >= 0) {
+            if (file.contains(filename)) {
                 finds.add(file);
             }
         }
@@ -42,9 +89,10 @@ public class FileWalker {
     }
 
 
-    public void start(String path) {
+    public void start() {
+        logger.debug("**********************file walker start at {}*************************",appPath);
         //获取其file对象
-        File dir = new File(path);
+        File dir = new File(appPath);
         getFiles(dir);
 
     }
@@ -66,5 +114,13 @@ public class FileWalker {
             }
         }
 
+    }
+
+    public String getAppPath() {
+        return appPath;
+    }
+
+    public void setAppPath(String appPath) {
+        this.appPath = appPath;
     }
 }
