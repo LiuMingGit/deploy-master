@@ -1,6 +1,8 @@
 package com.bsoft.deploy.bean;
 
-import com.bsoft.deploy.file.FileWalker;
+import com.bsoft.deploy.file.FileWorker;
+import com.bsoft.deploy.netty.server.SimpleFileSender;
+import com.bsoft.deploy.netty.server.SimpleFileServer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,9 +14,24 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class BeanFactory {
-    @Bean(initMethod="start")
-    FileWalker fileWalker() {
-        return new FileWalker();
+
+    @Bean
+    FileWorker fileWorker() {
+        return new FileWorker();
     }
 
+    @Bean(initMethod = "run")
+    SimpleFileServer fileServer() {
+        return new SimpleFileServer();
+    }
+
+    @Bean
+    SimpleFileSender fileSender() {
+        return new SimpleFileSender();
+    }
+
+    @Bean
+    FileWalkerFactory getFileWalkerFactory() {
+        return new FileWalkerFactory();
+    }
 }

@@ -1,8 +1,9 @@
 package com.bsoft.deploy.file;
 
+import com.bsoft.deploy.dao.entity.FileDTO;
+import com.bsoft.deploy.dao.mapper.AppFileMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 
 import java.io.File;
@@ -18,7 +19,14 @@ import java.util.*;
 public class FileWalker {
     private final static Logger logger = LoggerFactory.getLogger(FileWalker.class);
 
-    @Value("${appPath}")
+    private AppFileMapper fileMapper;
+    /**
+     * 同步百分比
+     */
+    private volatile int progressPercent = 0;
+    private volatile boolean isSyncRunning = false;
+
+
     private String appPath;
 
     private List<String> javaFiles = new ArrayList<>();
@@ -43,32 +51,33 @@ public class FileWalker {
 
     /**
      * 获取path路径下的文件列表
+     *
      * @param path 文件路径
      * @return 文件列表
      */
-    public List<Map<String,Object>> getFileTree(String path) {
-        List<Map<String,Object>> files = new ArrayList<>();
-        if(StringUtils.isEmpty(path)) {
+    public List<Map<String, Object>> getFileTree(String path) {
+        List<Map<String, Object>> files = new ArrayList<>();
+        if (StringUtils.isEmpty(path)) {
             path = appPath;
         }
         File dir = new File(path);
-        if(dir.isDirectory()) {
-            for(File f : dir.listFiles()) {
-                Map<String,Object> fileNode = new HashMap<>(4);
-                fileNode.put("name",f.getName());
-                fileNode.put("path",f.getAbsolutePath());
-                fileNode.put("leaf",!f.isDirectory());
+        if (dir.isDirectory()) {
+            for (File f : dir.listFiles()) {
+                Map<String, Object> fileNode = new HashMap<>(4);
+                fileNode.put("name", f.getName());
+                fileNode.put("path", f.getAbsolutePath());
+                fileNode.put("leaf", !f.isDirectory());
                 files.add(fileNode);
             }
         }
         Collections.sort(files, new Comparator<Map<String, Object>>() {
             @Override
             public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-                boolean leaf1 = (boolean)o1.get("leaf");
-                boolean leaf2 = (boolean)o2.get("leaf");
-                if(leaf1 && !leaf2) {
+                boolean leaf1 = (boolean) o1.get("leaf");
+                boolean leaf2 = (boolean) o2.get("leaf");
+                if (leaf1 && !leaf2) {
                     return 1;
-                } else if(!leaf1 && leaf2) {
+                } else if (!leaf1 && leaf2) {
                     return -1;
                 } else {
                     return o1.get("name").toString().compareTo(o2.get("name").toString());
@@ -89,8 +98,8 @@ public class FileWalker {
     }
 
 
-    public void start() {
-        logger.debug("**********************file walker start at {}*************************",appPath);
+    public void init() {
+        logger.debug("**********************file walker start at {}*************************", appPath);
         //获取其file对象
         File dir = new File(appPath);
         getFiles(dir);
@@ -116,11 +125,88 @@ public class FileWalker {
 
     }
 
-    public String getAppPath() {
-        return appPath;
+    /**
+     * 单文件同步(文件系统和数据库状态)
+     *
+     * @param filename 文件名(全路径)
+     */
+    public void syncFile(String filename) {
+
+    }
+
+    /**
+     * 同步文件与数据库的状态
+     * 一般新建时调用
+     *
+     * @return 同步进度百分比
+     */
+    public int syncFiles(int appId) {
+        if (!isSyncRunning) {
+            isSyncRunning = true;
+            doSync(appId);
+            isSyncRunning = false;
+        }
+        return progressPercent;
+
+    }
+
+    /**
+     * 获取同步进度百分比
+     *
+     * @return 百分比
+     */
+    public int getProgressPercent() {
+        return progressPercent;
+    }
+
+    private void doSync(int appId) {
+        int totalFilesCount = javaFiles.size() + jsFiles.size() + otherFiles.size();
+        int onePointStep = totalFilesCount / 100;
+        loop(appId, onePointStep, javaFiles);
+        loop(appId, onePointStep, jsFiles);
+        loop(appId, onePointStep, otherFiles);
+    }
+
+    private void loop(int appId, int onePointStep, List<String> files) {
+        int loop = 0;
+        for (String fileName : files) {
+            File file = new File(fileName);
+            FileDTO fileDTO = fileMapper.loadAppFile(appId, file.getAbsolutePath());
+            if (fileDTO == null) {
+                fileDTO = new FileDTO();
+                fileDTO.setFilename(file.getName());
+                fileDTO.setAppId(appId);
+                fileDTO.setPath(file.getAbsolutePath());
+                fileDTO.setMark(file.lastModified());
+                fileDTO.setOptime(new Date());
+                fileMapper.saveAppFile(fileDTO);
+            } else if (fileDTO.getMark() != file.lastModified()) {
+                // 更新文件
+                fileDTO.setMark(file.lastModified());
+                fileDTO.setOptime(new Date());
+                fileMapper.updateAppFile(fileDTO);
+            }
+            loop++;
+            if (onePointStep < 1) {
+                progressPercent = 50;
+            } else {
+                if (loop == onePointStep) {
+                    progressPercent++;
+                    loop = 0;
+                }
+            }
+        }
+    }
+
+    public String getAppPath(int appId) {
+        return fileMapper.findPathById(appId);
     }
 
     public void setAppPath(String appPath) {
         this.appPath = appPath;
+    }
+
+    public void setFileMapper(AppFileMapper fileMapper) {
+        this.fileMapper = fileMapper;
     }
 }

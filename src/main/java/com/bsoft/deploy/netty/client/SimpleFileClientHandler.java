@@ -1,7 +1,7 @@
 package com.bsoft.deploy.netty.client;
 
 import com.bsoft.deploy.dao.entity.AppFile;
-import com.bsoft.deploy.file.FileWoker;
+import com.bsoft.deploy.file.FileWorker;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
@@ -20,9 +20,13 @@ public class SimpleFileClientHandler extends SimpleChannelInboundHandler<Object>
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, Object o) throws Exception {
         try {
             AppFile file = (AppFile) o;
-            FileWoker fw = new FileWoker();
-            fw.receive(file);
-            System.out.println(file.getName() + " 同步成功");
+            FileWorker fw = new FileWorker();
+            if(fw.receive(file)) {
+                logger.info(file.getName() + " 同步成功");
+            } else {
+                logger.error(file.getName() + " 同步失败");
+                // todo 失败的处理流程
+            }
         } catch (Exception e) {
             logger.error("文件同步失败!", e);
         }

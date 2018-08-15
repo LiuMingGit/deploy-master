@@ -5,7 +5,7 @@ import com.bsoft.deploy.utils.FileUtils;
 import java.io.*;
 
 /**
- * 传输的文件对象
+ * 文件对象,用于netty文件传输
  * Created on 2018/8/9.
  *
  * @author yangl
@@ -15,6 +15,10 @@ public class AppFile implements Serializable {
      * 文件名
      */
     private String name;
+    /**
+     * 所属应用
+     */
+    private int appId;
     /**
      * 文件相对路径
      */
@@ -76,6 +80,14 @@ public class AppFile implements Serializable {
 
     public void setRelative(String relative) {
         this.relative = relative;
+    }
+
+    public int getAppId() {
+        return appId;
+    }
+
+    public void setAppId(int appId) {
+        this.appId = appId;
     }
 
     @Override

@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 
 /**
- * 用户查询
+ * 用户
  * Created on 2018/8/6.
  *
  * @author yangl

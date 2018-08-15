@@ -14,7 +14,7 @@ import java.io.FileOutputStream;
  *
  * @author yangl
  */
-public class FileWoker {
+public class FileWorker {
     private String appPath = "D:/workspace_ideal/deploy/master_target/";
     private String backup_dir = "D:/workspace_ideal/deploy/master_backup/";
 
