@@ -150,14 +150,6 @@ public class FileWalker {
 
     }
 
-    /**
-     * 获取同步进度百分比
-     *
-     * @return 百分比
-     */
-    public int getProgressPercent() {
-        return progressPercent;
-    }
 
     private void doSync(int appId) {
         int totalFilesCount = javaFiles.size() + jsFiles.size() + otherFiles.size();
@@ -198,6 +190,15 @@ public class FileWalker {
         }
     }
 
+    /**
+     * 同步文件到目标节点
+     * @param appId
+     */
+    public void syncFilesToSlave(int appId) {
+        List<FileDTO> files = fileMapper.loadAppFiles(appId);
+        FileSender.handOut(files);
+    }
+
     public String getAppPath(int appId) {
         return fileMapper.findPathById(appId);
     }
@@ -208,5 +209,14 @@ public class FileWalker {
 
     public void setFileMapper(AppFileMapper fileMapper) {
         this.fileMapper = fileMapper;
+    }
+
+    /**
+     * 获取同步进度百分比
+     *
+     * @return 百分比
+     */
+    public int getProgressPercent() {
+        return progressPercent;
     }
 }

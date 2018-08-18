@@ -1,7 +1,6 @@
 package com.bsoft.deploy;
 
 import com.bsoft.deploy.dao.entity.AppFile;
-import com.bsoft.deploy.netty.server.SimpleFileSender;
 import com.bsoft.deploy.netty.server.SimpleFileServer;
 
 import java.io.BufferedReader;
@@ -21,7 +20,7 @@ public class ServerSocketChannelDemo {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                new SimpleFileServer(9999).run();
+                new SimpleFileServer(9999).start();
             }
         }).start();
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
@@ -30,7 +29,7 @@ public class ServerSocketChannelDemo {
             if("send".equals(input)) {
                 System.out.println(input);
                 AppFile file = new AppFile("D:/workspace_ideal/deploy/master/src/main/java/com/bsoft/deploy/MasterApplication.java","D:/workspace_ideal/deploy/master/");
-                SimpleFileSender.handOut(file);
+                // FileSender.handOut(file);
             }
         }
     }

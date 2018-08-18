@@ -8,7 +8,7 @@ logging:
 spring:
     datasource:
         name: autoDeploy
-        url: jdbc:mysql://127.0.0.1:3306/cloudhis
+        url: jdbc:mysql://127.0.0.1:3306/deploy
         username: root
         password: bsoft
         # 使用druid数据源
@@ -43,5 +43,5 @@ appPath: D:/workspace_ideal/deploy/master/
 
 netty:
   server:
-    host: 10.0.22.136
-    port: 9999
+    host: localhost
+    port: 11223

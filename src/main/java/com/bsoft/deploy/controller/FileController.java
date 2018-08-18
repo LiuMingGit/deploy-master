@@ -5,8 +5,6 @@ import com.bsoft.deploy.bean.FileWalkerFactory;
 import com.bsoft.deploy.file.FileWalker;
 import com.bsoft.deploy.http.HttpResult;
 import com.bsoft.deploy.service.AppFileService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -26,14 +24,20 @@ import java.util.Map;
 @RestController
 @RequestMapping("/file")
 public class FileController {
-    private final static Logger logger = LoggerFactory.getLogger(FileController.class);
 
     @Autowired
     private AppFileService fileService;
 
+    /**
+     * 获取应用文件列表(文件系统)
+     *
+     * @param appId
+     * @param path
+     * @return
+     */
     @RequestMapping(value = {"/fileList"}, method = RequestMethod.GET)
     public HttpResult fileList(@RequestParam int appId, @RequestParam String path) {
-        FileWalkerFactory factory = MasterApplication.get().getBean(FileWalkerFactory.class);
+        FileWalkerFactory factory = MasterApplication.getContext().getBean(FileWalkerFactory.class);
         FileWalker fileWalker = factory.getInstance(appId);
 
         List<Map<String, Object>> fileTree = fileWalker.getFileTree(path);
@@ -59,9 +63,15 @@ public class FileController {
         }
     }
 
+    /**
+     * 获取应用相关参数
+     *
+     * @param appId
+     * @return
+     */
     @RequestMapping(value = {"/fileProp"}, method = RequestMethod.GET)
     public HttpResult fileProp(@RequestParam int appId) {
-        FileWalkerFactory factory = MasterApplication.get().getBean(FileWalkerFactory.class);
+        FileWalkerFactory factory = MasterApplication.getContext().getBean(FileWalkerFactory.class);
         FileWalker fileWalker = factory.getInstance(appId);
         HashMap<String, Object> prop = new HashMap<>(2);
         prop.put("appPath", fileWalker.getAppPath(appId));
@@ -70,18 +80,38 @@ public class FileController {
 
     /**
      * 应用文件状态同步
+     * 一般用于应用初始化
      *
      * @param appId
      * @return
      */
     @RequestMapping(value = "sync", method = RequestMethod.GET)
     public HttpResult syncApp(@RequestParam int appId) {
-        FileWalkerFactory factory = MasterApplication.get().getBean(FileWalkerFactory.class);
+        FileWalkerFactory factory = MasterApplication.getContext().getBean(FileWalkerFactory.class);
         FileWalker fileWalker = factory.getInstance(appId);
         fileWalker.syncFiles(appId);
         return new HttpResult();
     }
 
+    /**
+     * 将应用文件同步到所有的目标节点
+     *
+     * @param appId 应用id
+     * @return 状态
+     */
+    @RequestMapping(value = "syncToSlave", method = RequestMethod.GET)
+    public HttpResult syncFileToSlave(@RequestParam int appId) {
+        FileWalkerFactory factory = MasterApplication.getContext().getBean(FileWalkerFactory.class);
+        FileWalker fileWalker = factory.getInstance(appId);
+        fileWalker.syncFilesToSlave(appId);
+        return new HttpResult();
+    }
+
+    /**
+     * 获取所有的应用
+     *
+     * @return 应用列表
+     */
     @RequestMapping(value = "apps", method = RequestMethod.GET)
     public HttpResult loadApps() {
         return new HttpResult(fileService.loadApps());

@@ -22,7 +22,7 @@ public class MasterApplication {
         appContext = SpringApplication.run(MasterApplication.class, args);
     }
 
-    public static ApplicationContext get() {
+    public static ApplicationContext getContext() {
         return appContext;
     }
 }

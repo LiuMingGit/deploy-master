@@ -32,7 +32,7 @@ public class SimpleFileServer {
     }
 
 
-    public void run() {
+    public void start() {
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
@@ -51,11 +51,4 @@ public class SimpleFileServer {
         }
     }
 
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
 }

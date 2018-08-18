@@ -1,67 +1,110 @@
 package com.bsoft.deploy.file;
 
+import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.dao.entity.AppFile;
-import com.bsoft.deploy.exception.FileOperationException;
-import com.bsoft.deploy.utils.DateUtils;
+import com.bsoft.deploy.dao.entity.FileDTO;
+import com.bsoft.deploy.dao.entity.FileLog;
+import com.bsoft.deploy.dao.entity.Slave;
+import com.bsoft.deploy.dao.mapper.AppFileMapper;
 import com.bsoft.deploy.utils.FileUtils;
+import io.netty.channel.Channel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.RecursiveAction;
 
 /**
- * 接收master传输的文件
- * Created on 2018/8/10.
+ * 文件同步任务
+ * Created on 2018/8/15.
  *
  * @author yangl
  */
-public class FileWorker {
-    private String appPath = "D:/workspace_ideal/deploy/master_target/";
-    private String backup_dir = "D:/workspace_ideal/deploy/master_backup/";
+public class FileWorker extends RecursiveAction {
+    private static final Logger logger = LoggerFactory.getLogger(FileWorker.class);
+    private static final int THRESHOLD = 50;
+    /**
+     * 子节点
+     */
+    private Channel channel;
+    /**
+     * 传输的文件列表
+     */
+    private List<FileDTO> files;
 
-    public boolean receive(AppFile file) throws Exception {
-        File baseDir = new File(appPath);
-        if (!baseDir.exists()) {
-            if (!baseDir.mkdirs()) {
-                throw new FileOperationException("文件操作失败:应用基础路径不存在且创建失败!");
-            }
-        }
+    public FileWorker(Channel channel, List<FileDTO> files) {
+        this.channel = channel;
+        this.files = files;
+    }
 
-        File f = new File(appPath + file.getRelative());
-        // 文件存在先备份
-        if (f.exists()) {
-            String today = DateUtils.getNow("yyyyMMdd");
-            String backup_file_path = backup_dir + today;
-            File backup_today = new File(backup_file_path);
-            if (!backup_today.exists()) {
-                if (!backup_today.mkdirs()) {
-                    return false;
+    @Override
+    public void completeExceptionally(Throwable ex) {
+        logger.error("send file error!" + ex.getMessage());
+    }
+
+    @Override
+    protected void compute() {
+        if (files.size() < THRESHOLD) {
+            // 文件同步
+            for (FileDTO file : files) {
+                try {
+                    // 判断本地文件是否存在
+                    if (!FileUtils.exists(file.getPath())) {
+                        logger.error("文件同步失败!");
+                        continue;
+                    }
+                    // 插入文件发送记录
+                    FileLog log = new FileLog();
+                    setSlave(log, channel);
+                    int logId = saveLog(file, log);
+                    AppFile f = new AppFile(file.getPath(),
+                            Global.getAppBasePath(file.getAppId()));
+                    f.setLogId(logId);
+                    f.setId(file.getId());
+                    f.setMark(file.getMark());
+                    f.setAppId(file.getAppId());
+                    channel.writeAndFlush(f);
+
+                } catch (Exception e) {
+                    logger.error("文件{}同步失败!", file.getFilename(), e);
+                    FileLog log = new FileLog();
+                    log.setStatus(-1);
+                    log.setMessage(e.getMessage());
+                    setSlave(log, channel);
+                    saveLog(file, log);
                 }
             }
-            // 保存备份文件
-            File backup_file = new File(backup_file_path + File.separator + file.getName());
-            FileUtils.copyFile(f, backup_file);
-
-            // 文件是否允许操作
-            if (!f.canWrite()) {
-                throw new FileOperationException("文件操作失败:目标文件不允许写入!");
-            }
-
         } else {
-            String dir = FileUtils.getFilePath(f.getAbsolutePath());
-            new File(dir).mkdirs();
+            //拆分任务
+            int middle = files.size() / 2;
+            FileWorker leftTask = new FileWorker(channel, files.subList(0, middle));
+            FileWorker rightTask = new FileWorker(channel, files.subList(middle + 1, files.size() - 1));
+            leftTask.fork();
+            rightTask.fork();
         }
-        // 更新文件
-        FileOutputStream fos = null;
-        try {
-            fos = new FileOutputStream(f);
-            fos.write(file.getContent());
-            fos.flush();
-        } finally {
-            if (fos != null) {
-                fos.close();
-            }
-        }
-
-        return true;
     }
+
+    private void setSlave(FileLog log, Channel ch) {
+        String ip = getChannelIp(ch);
+        Slave slave = Global.getSlave(ip);
+        log.setSlaveId(slave.getId());
+    }
+
+    private String getChannelIp(Channel ch) {
+        String address = ch.remoteAddress().toString();
+        return address.substring(1, address.indexOf(":"));
+    }
+
+    public static int saveLog(FileDTO file, FileLog log) {
+        AppFileMapper fileMapper = Global.getFileMapper();
+        log.setAppId(file.getAppId());
+        log.setFileId(file.getId());
+        log.setMark(file.getMark());
+        log.setOptime(new Date());
+        int flag = fileMapper.saveFileTransferLog(log);
+        System.out.println(flag + ":" +log.getId());
+        return log.getId();
+    }
+
 }
