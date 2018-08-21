@@ -44,7 +44,7 @@ public class FileWorker extends RecursiveAction {
     }
 
     @Override
-    protected void compute() {
+    public void compute() {
         if (files.size() < THRESHOLD) {
             // 文件同步
             for (FileDTO file : files) {

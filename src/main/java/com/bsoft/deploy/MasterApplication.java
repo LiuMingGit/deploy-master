@@ -1,5 +1,6 @@
 package com.bsoft.deploy;
 
+import com.bsoft.deploy.context.Global;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -16,13 +17,10 @@ import org.springframework.context.annotation.ComponentScan;
 @ComponentScan(basePackages = "com.bsoft.deploy")
 @MapperScan("com.bsoft.deploy.dao.mapper")
 public class MasterApplication {
-    private static ApplicationContext appContext;
+
     public static void main(String[] args) {
-
-        appContext = SpringApplication.run(MasterApplication.class, args);
+        ApplicationContext appContext = SpringApplication.run(MasterApplication.class, args);
+        Global.setAppContext(appContext);
     }
 
-    public static ApplicationContext getContext() {
-        return appContext;
-    }
 }

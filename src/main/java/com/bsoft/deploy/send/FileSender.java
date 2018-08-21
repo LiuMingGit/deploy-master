@@ -1,6 +1,7 @@
-package com.bsoft.deploy.file;
+package com.bsoft.deploy.send;
 
 import com.bsoft.deploy.dao.entity.FileDTO;
+import com.bsoft.deploy.file.FileWorker;
 import com.bsoft.deploy.netty.server.SimpleFileServerHandler;
 import io.netty.channel.Channel;
 import io.netty.channel.group.ChannelGroup;

@@ -16,30 +16,20 @@ public class FileWatcher {
         Path dir = Paths.get(path);
         try {
             WatchService watcher = dir.getFileSystem().newWatchService();
-            dir.register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
-                    StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
+            dir.register(watcher, StandardWatchEventKinds.ENTRY_MODIFY);
             while (true) {
                 WatchKey watchKey = watcher.take();
                 List<WatchEvent<?>> events = watchKey.pollEvents();
                 for (WatchEvent event : events) {
-
-                    if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
-                        System.out.println("Created: " + event.context().toString());
-                    }
-                    if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
-                        System.out.println("Delete: " + event.context().toString());
-                    }
                     if (event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
                         System.out.println("Modify: " + event.context().toString());
                     }
                 }
-                if(!watchKey.reset()) {
+                if (!watchKey.reset()) {
                     break;
                 }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
 

@@ -1,7 +1,7 @@
 package com.bsoft.deploy.controller;
 
-import com.bsoft.deploy.MasterApplication;
 import com.bsoft.deploy.bean.FileWalkerFactory;
+import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.file.FileWalker;
 import com.bsoft.deploy.http.HttpResult;
 import com.bsoft.deploy.service.AppFileService;
@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * desc
+ * 文件处理 restful api
  * Created on 2018/8/7.
  *
  * @author yangl
@@ -37,7 +37,7 @@ public class FileController {
      */
     @RequestMapping(value = {"/fileList"}, method = RequestMethod.GET)
     public HttpResult fileList(@RequestParam int appId, @RequestParam String path) {
-        FileWalkerFactory factory = MasterApplication.getContext().getBean(FileWalkerFactory.class);
+        FileWalkerFactory factory = Global.getAppContext().getBean(FileWalkerFactory.class);
         FileWalker fileWalker = factory.getInstance(appId);
 
         List<Map<String, Object>> fileTree = fileWalker.getFileTree(path);
@@ -71,7 +71,7 @@ public class FileController {
      */
     @RequestMapping(value = {"/fileProp"}, method = RequestMethod.GET)
     public HttpResult fileProp(@RequestParam int appId) {
-        FileWalkerFactory factory = MasterApplication.getContext().getBean(FileWalkerFactory.class);
+        FileWalkerFactory factory = Global.getAppContext().getBean(FileWalkerFactory.class);
         FileWalker fileWalker = factory.getInstance(appId);
         HashMap<String, Object> prop = new HashMap<>(2);
         prop.put("appPath", fileWalker.getAppPath(appId));
@@ -87,7 +87,7 @@ public class FileController {
      */
     @RequestMapping(value = "sync", method = RequestMethod.GET)
     public HttpResult syncApp(@RequestParam int appId) {
-        FileWalkerFactory factory = MasterApplication.getContext().getBean(FileWalkerFactory.class);
+        FileWalkerFactory factory = Global.getAppContext().getBean(FileWalkerFactory.class);
         FileWalker fileWalker = factory.getInstance(appId);
         fileWalker.syncFiles(appId);
         return new HttpResult();
@@ -101,7 +101,7 @@ public class FileController {
      */
     @RequestMapping(value = "syncToSlave", method = RequestMethod.GET)
     public HttpResult syncFileToSlave(@RequestParam int appId) {
-        FileWalkerFactory factory = MasterApplication.getContext().getBean(FileWalkerFactory.class);
+        FileWalkerFactory factory = Global.getAppContext().getBean(FileWalkerFactory.class);
         FileWalker fileWalker = factory.getInstance(appId);
         fileWalker.syncFilesToSlave(appId);
         return new HttpResult();

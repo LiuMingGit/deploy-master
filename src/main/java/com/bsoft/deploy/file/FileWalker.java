@@ -2,6 +2,7 @@ package com.bsoft.deploy.file;
 
 import com.bsoft.deploy.dao.entity.FileDTO;
 import com.bsoft.deploy.dao.mapper.AppFileMapper;
+import com.bsoft.deploy.send.FileSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
@@ -136,7 +137,7 @@ public class FileWalker {
 
     /**
      * 同步文件与数据库的状态
-     * 一般新建时调用
+     * 一般新建项目时调用
      *
      * @return 同步进度百分比
      */
