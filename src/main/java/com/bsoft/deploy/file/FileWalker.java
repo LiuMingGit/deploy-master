@@ -200,10 +200,6 @@ public class FileWalker {
         FileSender.handOut(files);
     }
 
-    public String getAppPath(int appId) {
-        return fileMapper.findPathById(appId);
-    }
-
     public void setAppPath(String appPath) {
         this.appPath = appPath;
     }

@@ -2,6 +2,7 @@ package com.bsoft.deploy.controller;
 
 import com.alibaba.druid.support.json.JSONUtils;
 import com.bsoft.deploy.dao.entity.Slave;
+import com.bsoft.deploy.dao.entity.SlaveApp;
 import com.bsoft.deploy.http.HttpResult;
 import com.bsoft.deploy.netty.server.SimpleFileServerHandler;
 import com.bsoft.deploy.service.SlaveService;
@@ -96,6 +97,17 @@ public class SlaveController {
     @RequestMapping(value = {"/list"}, method = RequestMethod.GET)
     public HttpResult slaveList() {
         List<Slave> slaves = slaveService.loadSlaves();
+        return new HttpResult(slaves);
+    }
+
+    /**
+     * 获取子节点的应用信息
+     *
+     * @return
+     */
+    @RequestMapping(value = {"/apps"}, method = RequestMethod.GET)
+    public HttpResult slaveAppList(int slaveId) {
+        List<SlaveApp> slaves = slaveService.loadSlaveApps(slaveId);
         return new HttpResult(slaves);
     }
 

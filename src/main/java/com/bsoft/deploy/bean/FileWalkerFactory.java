@@ -1,5 +1,6 @@
 package com.bsoft.deploy.bean;
 
+import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.dao.mapper.AppFileMapper;
 import com.bsoft.deploy.file.FileWalker;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +25,7 @@ public class FileWalkerFactory {
             return instances.get(appId);
         }
         FileWalker fw = new FileWalker();
-        String appPath = fileMapper.findPathById(appId);
+        String appPath = Global.getAppStore().getApp(appId).getPath();
         fw.setAppPath(appPath);
         fw.setFileMapper(fileMapper);
         fw.init();

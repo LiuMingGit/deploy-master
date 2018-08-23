@@ -1,8 +1,11 @@
 package com.bsoft.deploy.service;
 
 import com.bsoft.deploy.context.Constant;
+import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.dao.entity.Order;
 import com.bsoft.deploy.dao.entity.Slave;
+import com.bsoft.deploy.dao.entity.SlaveApp;
+import com.bsoft.deploy.dao.mapper.SlaveAppFileMapper;
 import com.bsoft.deploy.dao.mapper.SlaveMapper;
 import com.bsoft.deploy.send.CmdSender;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,8 +26,24 @@ public class SlaveService {
     @Autowired
     private SlaveMapper slaveMapper;
 
+    @Autowired
+    private SlaveAppFileMapper slaveAppFileMapper;
+
     public List<Slave> loadSlaves() {
         return slaveMapper.loadSlaves();
+    }
+
+    public List<SlaveApp> loadSlaveApps(int slaveId) {
+        List<SlaveApp> slaves = slaveMapper.loadSlaveApps(slaveId);
+        for (SlaveApp slaveApp : slaves) {
+            String appName = Global.getAppStore().getApp(slaveApp.getAppId()).getAppName();
+            slaveApp.setAppName(appName);
+        }
+        return slaves;
+    }
+
+    public List<SlaveApp> loadSlaves(int appId) {
+        return slaveAppFileMapper.findSlaveApps(appId);
     }
 
     public Map isTomcatRun(int slaveAppId) {

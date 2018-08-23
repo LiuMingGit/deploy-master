@@ -71,10 +71,8 @@ public class FileController {
      */
     @RequestMapping(value = {"/fileProp"}, method = RequestMethod.GET)
     public HttpResult fileProp(@RequestParam int appId) {
-        FileWalkerFactory factory = Global.getAppContext().getBean(FileWalkerFactory.class);
-        FileWalker fileWalker = factory.getInstance(appId);
         HashMap<String, Object> prop = new HashMap<>(2);
-        prop.put("appPath", fileWalker.getAppPath(appId));
+        prop.put("appPath", Global.getAppStore().getApp(appId).getPath());
         return new HttpResult(prop);
     }
 
@@ -107,13 +105,4 @@ public class FileController {
         return new HttpResult();
     }
 
-    /**
-     * 获取所有的应用
-     *
-     * @return 应用列表
-     */
-    @RequestMapping(value = "apps", method = RequestMethod.GET)
-    public HttpResult loadApps() {
-        return new HttpResult(fileService.loadApps());
-    }
 }
