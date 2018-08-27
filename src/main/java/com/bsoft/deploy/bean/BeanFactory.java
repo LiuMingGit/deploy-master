@@ -3,6 +3,7 @@ package com.bsoft.deploy.bean;
 import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.context.store.AppStore;
 import com.bsoft.deploy.context.store.SlaveStore;
+import com.bsoft.deploy.context.store.TokenStore;
 import com.bsoft.deploy.netty.server.SimpleFileServer;
 import com.bsoft.deploy.send.FileSender;
 import org.springframework.context.annotation.Bean;
@@ -35,6 +36,11 @@ public class BeanFactory {
     @Bean
     Global initGlobal() {
         return new Global();
+    }
+
+    @Bean
+    TokenStore createTokenStore() {
+        return new TokenStore();
     }
 
     @Bean

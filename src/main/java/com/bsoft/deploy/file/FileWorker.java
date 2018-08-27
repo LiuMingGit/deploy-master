@@ -97,13 +97,14 @@ public class FileWorker extends RecursiveAction {
     }
 
     public static int saveLog(FileDTO file, FileLog log) {
+        System.out.println(log.getMark());
         AppFileMapper fileMapper = Global.getFileMapper();
         log.setAppId(file.getAppId());
         log.setFileId(file.getId());
         log.setMark(file.getMark());
         log.setOptime(new Date());
         int flag = fileMapper.saveFileTransferLog(log);
-        System.out.println(flag + ":" +log.getId());
+
         return log.getId();
     }
 

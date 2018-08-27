@@ -46,6 +46,17 @@ public class SlaveService {
         return slaveAppFileMapper.findSlaveApps(appId);
     }
 
+    public void saveSlave(Slave slave) {
+        slaveMapper.save(slave);
+    }
+
+    public void updateSlave(Slave slave) {
+        slaveMapper.update(slave);
+    }
+
+    public void deleteSlave(int id) {
+        slaveMapper.delete(id);
+    }
     public Map isTomcatRun(int slaveAppId) {
         return _handOut(Constant.CMD_IS_TOMCAT_RUN, slaveAppId);
     }

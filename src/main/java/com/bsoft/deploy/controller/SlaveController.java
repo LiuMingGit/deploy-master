@@ -1,6 +1,7 @@
 package com.bsoft.deploy.controller;
 
 import com.alibaba.druid.support.json.JSONUtils;
+import com.alibaba.fastjson.JSON;
 import com.bsoft.deploy.dao.entity.Slave;
 import com.bsoft.deploy.dao.entity.SlaveApp;
 import com.bsoft.deploy.http.HttpResult;
@@ -14,6 +15,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -98,6 +100,41 @@ public class SlaveController {
     public HttpResult slaveList() {
         List<Slave> slaves = slaveService.loadSlaves();
         return new HttpResult(slaves);
+    }
+
+    /**
+     * 删除子节点
+     * @param id
+     * @return
+     */
+    @RequestMapping(value = {"/delete"}, method = RequestMethod.GET)
+    public HttpResult deleteSlave(int id) {
+        // 判断应用是否被使用
+        int size = slaveService.loadSlaveApps(id).size();
+        HttpResult result = new HttpResult();
+        if (size > 0) {
+            result.setCode(30001);
+            result.setMessage("子节点存在有效的关联应用,请先取消绑定的应用!");
+            return result;
+        }
+        slaveService.deleteSlave(id);
+        return new HttpResult();
+    }
+
+    /**
+     * 新增 or 修改
+     *
+     * @return
+     */
+    @RequestMapping(value = {"/create", "/update"}, method = RequestMethod.POST)
+    public HttpResult saveSlave(@RequestBody String jsonData) {
+        Slave slave = JSON.parseObject(jsonData, Slave.class);
+        if (StringUtils.isEmpty(slave.getId()) || slave.getId() == 0) {
+            slaveService.saveSlave(slave);
+        } else {
+            slaveService.updateSlave(slave);
+        }
+        return new HttpResult(slave);
     }
 
     /**

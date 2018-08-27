@@ -3,9 +3,10 @@ package com.bsoft.deploy.file;
 import com.bsoft.deploy.dao.entity.FileDTO;
 import com.bsoft.deploy.dao.mapper.AppFileMapper;
 import com.bsoft.deploy.send.FileSender;
+import com.bsoft.deploy.utils.FileUtils;
+import com.bsoft.deploy.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.StringUtils;
 
 import java.io.File;
 import java.util.*;
@@ -141,11 +142,15 @@ public class FileWalker {
      *
      * @return 同步进度百分比
      */
-    public int syncFiles(int appId) {
+    public int syncFiles(final int appId) {
         if (!isSyncRunning) {
             isSyncRunning = true;
-            doSync(appId);
-            isSyncRunning = false;
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    doSync(appId);
+                }
+            }).start();
         }
         return progressPercent;
 
@@ -158,6 +163,7 @@ public class FileWalker {
         loop(appId, onePointStep, javaFiles);
         loop(appId, onePointStep, jsFiles);
         loop(appId, onePointStep, otherFiles);
+        isSyncRunning = true;
     }
 
     private void loop(int appId, int onePointStep, List<String> files) {
@@ -170,14 +176,17 @@ public class FileWalker {
                 fileDTO.setFilename(file.getName());
                 fileDTO.setAppId(appId);
                 fileDTO.setPath(file.getAbsolutePath());
-                fileDTO.setMark(file.lastModified());
+                fileDTO.setMark(FileUtils.getFileMd5(file));
                 fileDTO.setOptime(new Date());
                 fileMapper.saveAppFile(fileDTO);
-            } else if (fileDTO.getMark() != file.lastModified()) {
-                // 更新文件
-                fileDTO.setMark(file.lastModified());
-                fileDTO.setOptime(new Date());
-                fileMapper.updateAppFile(fileDTO);
+            } else {
+                String md5 = FileUtils.getFileMd5(file);
+                if (!StringUtils.equals(fileDTO.getMark(), md5)) {
+                    // 更新文件
+                    fileDTO.setMark(md5);
+                    fileDTO.setOptime(new Date());
+                    fileMapper.updateAppFile(fileDTO);
+                }
             }
             loop++;
             if (onePointStep < 1) {
@@ -191,8 +200,11 @@ public class FileWalker {
         }
     }
 
+
+
     /**
      * 同步文件到目标节点
+     *
      * @param appId
      */
     public void syncFilesToSlave(int appId) {

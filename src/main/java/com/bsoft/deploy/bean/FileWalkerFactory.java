@@ -21,7 +21,7 @@ public class FileWalkerFactory {
 
 
     public FileWalker getInstance(int appId) {
-        if (instances.contains(appId)) {
+        if (instances.containsKey(appId)) {
             return instances.get(appId);
         }
         FileWalker fw = new FileWalker();

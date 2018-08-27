@@ -87,8 +87,8 @@ public class FileController {
     public HttpResult syncApp(@RequestParam int appId) {
         FileWalkerFactory factory = Global.getAppContext().getBean(FileWalkerFactory.class);
         FileWalker fileWalker = factory.getInstance(appId);
-        fileWalker.syncFiles(appId);
-        return new HttpResult();
+        int progressPercent = fileWalker.syncFiles(appId);
+        return new HttpResult(progressPercent);
     }
 
     /**
