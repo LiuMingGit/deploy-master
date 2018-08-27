@@ -1,3 +1,6 @@
+security:
+  expireSec: 3600
+
 server:
   port: 8888
 #==================== 日志配合·标准  ============================
@@ -30,7 +33,9 @@ spring:
 
 ## 该配置节点为独立的节点，有很多同学容易将这个配置放在spring的节点下，导致配置无法被识别
 mybatis:
-  type-aliases-package: com.bsoft.deploy.mapperr  # 注意：对应实体类的路径
+  configuration:
+    map-underscore-to-camel-case: true
+  type-aliases-package: com.bsoft.deploy.mapper  # 注意：对应实体类的路径
 
 #pagehelper分页插件
 pagehelper:
@@ -39,7 +44,6 @@ pagehelper:
     supportMethodsArguments: true
     params: count=countSql
 
-appPath: D:/workspace_ideal/deploy/master/
 
 netty:
   server:
