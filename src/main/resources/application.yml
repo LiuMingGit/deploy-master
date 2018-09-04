@@ -9,6 +9,10 @@ logging:
     classpath:logback-boot.xml
 
 spring:
+    http:
+        multipart:
+          max-file-size: 100Mb
+          max-request-size: 100Mb
     datasource:
         name: autoDeploy
         url: jdbc:mysql://127.0.0.1:3306/deploy
