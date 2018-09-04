@@ -95,10 +95,11 @@ public class FileController {
      * 将应用文件同步到所有的目标节点
      *
      * @param appId 应用id
+     * @param pkgId 更新包id
      * @return 状态
      */
     @RequestMapping(value = "syncToSlave", method = RequestMethod.GET)
-    public HttpResult syncFileToSlave(@RequestParam int appId) {
+    public HttpResult syncFileToSlave(@RequestParam int appId,@RequestParam int pkgId) {
         FileWalkerFactory factory = Global.getAppContext().getBean(FileWalkerFactory.class);
         FileWalker fileWalker = factory.getInstance(appId);
         fileWalker.syncFilesToSlave(appId);

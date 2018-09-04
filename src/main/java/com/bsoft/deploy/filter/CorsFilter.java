@@ -1,5 +1,9 @@
 package com.bsoft.deploy.filter;
 
+import com.alibaba.fastjson.JSON;
+import com.bsoft.deploy.context.Global;
+import com.bsoft.deploy.http.HttpResult;
+import com.bsoft.deploy.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -8,6 +12,7 @@ import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 /**
  * 跨域过滤器,允许接收跨域请求
@@ -45,14 +50,17 @@ public class CorsFilter implements Filter {
         if("/user/login".equals(path)) {
             filterChain.doFilter(servletRequest, servletResponse);
         }else {
+            /*if(request.getHeader("Origin").contains("localhost")) {
+
+            }*/
             // 验证票据合法性
-            /*if (StringUtils.isEmpty(ticket) || Global.getTokenStore().get(ticket) == null) {
+            if (StringUtils.isEmpty(ticket) || Global.getTokenStore().get(ticket) == null) {
                 HttpResult result = new HttpResult(50014,"权限验证失败!");
                 response.setContentType("application/json; charset=utf-8");
                 PrintWriter out = response.getWriter();
                 out.print(JSON.toJSONString(result));
                 return;
-            }*/
+            }
             filterChain.doFilter(servletRequest, servletResponse);
         }
     }

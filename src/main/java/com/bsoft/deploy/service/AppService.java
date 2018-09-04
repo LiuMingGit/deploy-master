@@ -1,6 +1,7 @@
 package com.bsoft.deploy.service;
 
 import com.bsoft.deploy.dao.entity.App;
+import com.bsoft.deploy.dao.entity.AppPackage;
 import com.bsoft.deploy.dao.mapper.AppMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -33,5 +34,9 @@ public class AppService {
 
     public void deleteApp(int appId) {
         appMapper.delete(appId);
+    }
+
+    public List<AppPackage> loadAppPackages(int appId) {
+       return appMapper.loadAppPackages(appId);
     }
 }
