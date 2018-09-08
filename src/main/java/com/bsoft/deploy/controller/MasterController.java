@@ -5,6 +5,7 @@ import com.bsoft.deploy.context.Constant;
 import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.dao.entity.App;
 import com.bsoft.deploy.dao.entity.AppPackage;
+import com.bsoft.deploy.file.FileWalker;
 import com.bsoft.deploy.http.HttpResult;
 import com.bsoft.deploy.service.AppService;
 import com.bsoft.deploy.service.SlaveService;
@@ -21,6 +22,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.nio.channels.FileChannel;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -120,6 +122,35 @@ public class MasterController {
         return new HttpResult(pkgs);
     }
 
+
+    /**
+     * 获取应用更新包
+     *
+     * @return
+     */
+    @RequestMapping(value = {"/package"}, method = RequestMethod.GET)
+    public HttpResult findAppPackageById(int pkgId) {
+        AppPackage pkg = appService.findAppPackageById(pkgId);
+        return new HttpResult(pkg);
+    }
+
+    /**
+     * 更新包 新增 or 修改
+     *
+     * @return
+     */
+    @RequestMapping(value = {"/package/save"}, method = RequestMethod.POST)
+    public HttpResult saveAppPackage(@RequestBody String jsonData) {
+        AppPackage appPackage = JSON.parseObject(jsonData, AppPackage.class);
+        if (StringUtils.isEmpty(appPackage.getId()) || appPackage.getId() == 0) {
+            appPackage.setOptime(new Date());
+            appService.saveAppPackage(appPackage);
+        } else {
+            appService.updateAppPackage(appPackage);
+        }
+        return new HttpResult(appPackage);
+    }
+
     /**
      * 上传更新包(支持zip压缩包上传)
      *
@@ -137,26 +168,27 @@ public class MasterController {
         // 总块数
         String totalChunks = request.getParameter("totalChunks");
         // 分块大小
-        String chunkSize = request.getParameter("chunkSize");
+        // String chunkSize = request.getParameter("chunkSize");
         // 总大小
-        String totalSize = request.getParameter("totalSize");
+        // String totalSize = request.getParameter("totalSize");
         // 文件唯一标识
         String identifier = request.getParameter("identifier");
         // 文件名
-        String filename = request.getParameter("filename");
+        // String filename = request.getParameter("filename");
         // 上传文件的相对路径
         String relative_path = request.getParameter("relativePath");
         // 文件对象
         MultipartFile file = ((MultipartHttpServletRequest) request).getFile("file");
 
         System.out.println("receive chunkNumber:" + chunkNumber + ",totalChunks:" + totalChunks);
+        File toFile = null;
         BufferedOutputStream fos = null;
         try {
             // 确定上传路径
             String app_home = Global.getAppStore().getApp(Integer.parseInt(appId)).getPath() + File.separator + "version_" + pkgId + File.separator;
             String file_path = StringUtils.cleanPath(app_home + relative_path);
             if (StringUtils.equals("1", totalChunks)) {
-                File toFile = new File(file_path);
+                toFile = new File(file_path);
                 if (!toFile.exists()) {
                     String dir = FileUtils.getFilePath(file_path);
                     new File(dir).mkdirs();
@@ -165,10 +197,13 @@ public class MasterController {
                 fos = new BufferedOutputStream(new FileOutputStream(toFile));
                 fos.write(file.getBytes());
                 fos.flush();
+                FileUtils.closeStream(fos);
             } else {
                 // 分片存储tmp
-                String temp_home = Global.getAppStore().getApp(Integer.parseInt(appId)).getPath()
+                App app = Global.getAppStore().getApp(Integer.parseInt(appId));
+                String temp_home = app.getPath()
                         + File.separator + "temp"
+                        + File.separator + app.getAppName()
                         + File.separator + identifier;
                 File temp_dir = new File(temp_home);
                 if (!temp_dir.exists()) {
@@ -178,24 +213,43 @@ public class MasterController {
                 fos = new BufferedOutputStream(new FileOutputStream(tempFile));
                 fos.write(file.getBytes());
                 fos.flush();
+                FileUtils.closeStream(fos);
                 // 合并并删除tmp
                 if (temp_dir.list().length == Integer.parseInt(totalChunks)) {
-                    FileUtils.closeStream(fos);
-                    combineFiles(temp_dir, file_path);
+                    toFile = combineFiles(temp_dir, file_path);
                     FileUtils.deleteDir(temp_dir);
                 }
             }
+            // 解压
+            if (toFile != null) {
+                if (file_path.endsWith(".zip") || file_path.endsWith(".war")) {
+                    FileUtils.unZip(toFile, app_home);
+                    FileUtils.deleteDir(toFile);
+                    // 解压后同步状态
+                    toFile = new File(app_home);
+                }
+                // 同步文件和数据库状态
+                FileWalker fw = Global.getAppContext().getBean(FileWalker.class);
+                fw.syncFile(Integer.parseInt(pkgId), toFile);
+
+            }
         } catch (Exception e) {
+            FileUtils.closeStream(fos);
             logger.error("文件[{}]上传失败!", relative_path, e);
             response.sendError(415, e.getMessage());
-        } finally {
-            FileUtils.closeStream(fos);
         }
 
 
     }
 
-    private void combineFiles(File tempDir, String filePath) throws IOException {
+    /**
+     * 合并分片文件
+     *
+     * @param tempDir
+     * @param filePath
+     * @throws IOException
+     */
+    private File combineFiles(File tempDir, String filePath) throws IOException {
         File toFile = new File(filePath);
         if (!toFile.exists()) {
             String dir = FileUtils.getFilePath(filePath);
@@ -208,13 +262,14 @@ public class MasterController {
         }
         FileChannel outChannel = new FileOutputStream(outputFile).getChannel();
         FileChannel inChannel;
-        for (int index=1;index<tempDir.list().length + 1; index++) {
+        for (int index = 1; index < tempDir.list().length + 1; index++) {
             File file = new File(tempDir.getAbsolutePath() + File.separator + index + Constant.TMP_FILE_SUFFIX);
             inChannel = new FileInputStream(file).getChannel();
             inChannel.transferTo(0, inChannel.size(), outChannel);
             inChannel.close();
         }
         outChannel.close();
+        return outputFile;
     }
 
 }

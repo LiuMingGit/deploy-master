@@ -39,4 +39,25 @@ public class AppService {
     public List<AppPackage> loadAppPackages(int appId) {
        return appMapper.loadAppPackages(appId);
     }
+
+    public AppPackage findAppPackageById(int pkgId) {
+        return appMapper.findAppPackageById(pkgId);
+    }
+
+    public void saveAppPackage(AppPackage appPackage) {
+        appMapper.saveAppPackage(appPackage);
+    }
+
+    public void updateAppPackage(AppPackage appPackage) {
+        appMapper.updateAppPackage(appPackage);
+    }
+
+    /**
+     * 查询是否有更新
+     * @param appId
+     * @param pkgId
+     */
+    public boolean hasUpdateVersion(int appId, int pkgId) {
+        return appMapper.hasUpdateVersion(appId,pkgId) > 0;
+    }
 }

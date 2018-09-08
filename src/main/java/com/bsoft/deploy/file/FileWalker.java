@@ -7,6 +7,7 @@ import com.bsoft.deploy.utils.FileUtils;
 import com.bsoft.deploy.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.File;
 import java.util.*;
@@ -20,7 +21,7 @@ import java.util.*;
 
 public class FileWalker {
     private final static Logger logger = LoggerFactory.getLogger(FileWalker.class);
-
+    @Autowired
     private AppFileMapper fileMapper;
     /**
      * 同步百分比
@@ -132,7 +133,23 @@ public class FileWalker {
      *
      * @param filename 文件名(全路径)
      */
-    public void syncFile(String filename) {
+    public void syncFile(int pkgId, String filename) {
+        syncFile(pkgId, new File(filename));
+    }
+
+    /**
+     * 单文件同步(文件系统和数据库状态)
+     *
+     * @param file 文件对象
+     */
+    public void syncFile(int pkgId, File file) {
+        if (file.isDirectory()) {
+            for (File child : file.listFiles()) {
+                syncFile(pkgId, child);
+            }
+        } else {
+            saveFile(pkgId, file);
+        }
 
     }
 
@@ -200,6 +217,26 @@ public class FileWalker {
         }
     }
 
+    private void saveFile(int pkgId, File file) {
+        FileDTO fileDTO = fileMapper.findPackageFile(pkgId, file.getAbsolutePath());
+        if (fileDTO == null) {
+            fileDTO = new FileDTO();
+            fileDTO.setFilename(file.getName());
+            fileDTO.setPkgId(pkgId);
+            fileDTO.setPath(file.getAbsolutePath());
+            fileDTO.setMark(FileUtils.getFileMd5(file));
+            fileDTO.setOptime(new Date());
+            fileMapper.savePackageFile(fileDTO);
+        } else {
+            String md5 = FileUtils.getFileMd5(file);
+            if (!StringUtils.equals(fileDTO.getMark(), md5)) {
+                // 更新文件
+                fileDTO.setMark(md5);
+                fileDTO.setOptime(new Date());
+                fileMapper.updatePackageFile(fileDTO);
+            }
+        }
+    }
 
 
     /**

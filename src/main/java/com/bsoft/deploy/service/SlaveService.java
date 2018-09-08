@@ -54,11 +54,31 @@ public class SlaveService {
         slaveMapper.update(slave);
     }
 
+    public void saveSlaveApp(SlaveApp slaveApp) {
+        slaveMapper.saveSlaveApp(slaveApp);
+    }
+
+    public void updateSlaveApp(SlaveApp slaveApp) {
+        slaveMapper.updateSlaveApp(slaveApp);
+    }
+
+    public Slave findSlave(int id) {
+        return slaveMapper.findSlave(id);
+    }
+
+    public SlaveApp findSlaveApp(int id) {
+        return slaveMapper.findSlaveApp(id);
+    }
+
     public void deleteSlave(int id) {
         slaveMapper.delete(id);
     }
     public Map isTomcatRun(int slaveAppId) {
-        return _handOut(Constant.CMD_IS_TOMCAT_RUN, slaveAppId);
+        try {
+            return _handOut(Constant.CMD_IS_TOMCAT_RUN, slaveAppId);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public Map startTomcat(int slaveAppId) {
@@ -88,6 +108,7 @@ public class SlaveService {
         CmdSender.handOutSync(order, target);
         return order.getRespData();
     }
+
 
 
 }

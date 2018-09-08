@@ -2,6 +2,7 @@ package com.bsoft.deploy.send;
 
 import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.dao.entity.Order;
+import com.bsoft.deploy.exception.SlaveOfflineException;
 import com.bsoft.deploy.netty.server.SimpleFileServerHandler;
 import io.netty.channel.Channel;
 import io.netty.channel.group.ChannelGroup;
@@ -34,10 +35,12 @@ public class CmdSender {
      */
     public static void handOutSync(Order order, int slaveAppId) {
         ChannelGroup group = SimpleFileServerHandler.channels;
+        boolean slaveOnline = false;
+        int slaveId = Global.getSlaveStore().getSlaveApp(slaveAppId).getSlaveId();
         for (Channel ch : group) {
-            int slaveId = Global.getSlaveStore().getSlaveApp(slaveAppId).getSlaveId();
             String slaveIp = Global.getSlaveStore().getSlave(slaveId).getIp();
             if (ch.remoteAddress().toString().contains(slaveIp)) {
+                slaveOnline = true;
                 CountDownLatch latch = new CountDownLatch(1);
                 String uuid = UUID.randomUUID().toString();
                 order.setUniqueId(uuid);
@@ -51,6 +54,10 @@ public class CmdSender {
                 }
                 waiters.remove(uuid);
             }
+        }
+        if (!slaveOnline) {
+            String message = "节点[" + Global.getSlaveStore().getSlave(slaveId).getName() + "]服务异常!请先排查阶段节点状态!";
+            throw new SlaveOfflineException(message);
         }
     }
 

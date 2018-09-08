@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,14 +32,13 @@ public class FileController {
     /**
      * 获取应用文件列表(文件系统)
      *
-     * @param appId
      * @param path
      * @return
      */
     @RequestMapping(value = {"/fileList"}, method = RequestMethod.GET)
-    public HttpResult fileList(@RequestParam int appId, @RequestParam String path) {
-        FileWalkerFactory factory = Global.getAppContext().getBean(FileWalkerFactory.class);
-        FileWalker fileWalker = factory.getInstance(appId);
+    public HttpResult fileList(@RequestParam String path) {
+        // FileWalkerFactory factory = Global.getAppContext().getBean(FileWalkerFactory.class);
+        FileWalker fileWalker = Global.getAppContext().getBean(FileWalker.class);
 
         List<Map<String, Object>> fileTree = fileWalker.getFileTree(path);
         if (fileTree.size() == 1) {
@@ -70,9 +70,10 @@ public class FileController {
      * @return
      */
     @RequestMapping(value = {"/fileProp"}, method = RequestMethod.GET)
-    public HttpResult fileProp(@RequestParam int appId) {
+    public HttpResult fileProp(@RequestParam int appId, @RequestParam int pkgId) {
         HashMap<String, Object> prop = new HashMap<>(2);
-        prop.put("appPath", Global.getAppStore().getApp(appId).getPath());
+        String path = Global.getAppStore().getApp(appId).getPath() + File.separator + "version_" + pkgId + File.separator;
+        prop.put("appPath", path);
         return new HttpResult(prop);
     }
 
@@ -99,7 +100,7 @@ public class FileController {
      * @return 状态
      */
     @RequestMapping(value = "syncToSlave", method = RequestMethod.GET)
-    public HttpResult syncFileToSlave(@RequestParam int appId,@RequestParam int pkgId) {
+    public HttpResult syncFileToSlave(@RequestParam int appId, @RequestParam int pkgId) {
         FileWalkerFactory factory = Global.getAppContext().getBean(FileWalkerFactory.class);
         FileWalker fileWalker = factory.getInstance(appId);
         fileWalker.syncFilesToSlave(appId);
