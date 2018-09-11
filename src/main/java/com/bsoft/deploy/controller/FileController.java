@@ -1,6 +1,5 @@
 package com.bsoft.deploy.controller;
 
-import com.bsoft.deploy.bean.FileWalkerFactory;
 import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.file.FileWalker;
 import com.bsoft.deploy.http.HttpResult;
@@ -77,34 +76,5 @@ public class FileController {
         return new HttpResult(prop);
     }
 
-    /**
-     * 应用文件状态同步
-     * 一般用于应用初始化
-     *
-     * @param appId
-     * @return
-     */
-    @RequestMapping(value = "sync", method = RequestMethod.GET)
-    public HttpResult syncApp(@RequestParam int appId) {
-        FileWalkerFactory factory = Global.getAppContext().getBean(FileWalkerFactory.class);
-        FileWalker fileWalker = factory.getInstance(appId);
-        int progressPercent = fileWalker.syncFiles(appId);
-        return new HttpResult(progressPercent);
-    }
-
-    /**
-     * 将应用文件同步到所有的目标节点
-     *
-     * @param appId 应用id
-     * @param pkgId 更新包id
-     * @return 状态
-     */
-    @RequestMapping(value = "syncToSlave", method = RequestMethod.GET)
-    public HttpResult syncFileToSlave(@RequestParam int appId, @RequestParam int pkgId) {
-        FileWalkerFactory factory = Global.getAppContext().getBean(FileWalkerFactory.class);
-        FileWalker fileWalker = factory.getInstance(appId);
-        fileWalker.syncFilesToSlave(appId);
-        return new HttpResult();
-    }
 
 }

@@ -1,12 +1,18 @@
 package com.bsoft.deploy.file;
 
-import com.bsoft.deploy.dao.entity.FileDTO;
+import com.bsoft.deploy.context.Constant;
+import com.bsoft.deploy.context.Global;
+import com.bsoft.deploy.dao.entity.*;
 import com.bsoft.deploy.dao.mapper.AppFileMapper;
+import com.bsoft.deploy.dao.mapper.AppMapper;
+import com.bsoft.deploy.dao.mapper.SlaveMapper;
+import com.bsoft.deploy.send.CmdSender;
 import com.bsoft.deploy.send.FileSender;
 import com.bsoft.deploy.utils.FileUtils;
 import com.bsoft.deploy.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.MessageFormatter;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.File;
@@ -23,6 +29,10 @@ public class FileWalker {
     private final static Logger logger = LoggerFactory.getLogger(FileWalker.class);
     @Autowired
     private AppFileMapper fileMapper;
+    @Autowired
+    private SlaveMapper slaveMapper;
+    @Autowired
+    private AppMapper appMapper;
     /**
      * 同步百分比
      */
@@ -240,13 +250,100 @@ public class FileWalker {
 
 
     /**
-     * 同步文件到目标节点
+     * 节点版本更新
      *
-     * @param appId
+     * @param slaveAppId
+     * @param pkgId
      */
-    public void syncFilesToSlave(int appId) {
-        List<FileDTO> files = fileMapper.loadAppFiles(appId);
-        FileSender.handOut(files);
+    public Map<String, Object> updateToSlave(int slaveAppId, int pkgId) {
+        Map<String, Object> res = new HashMap<>();
+        SlaveApp slaveApp = slaveMapper.findSlaveAppById(slaveAppId);
+        Slave slave = Global.getSlaveStore().getSlave(slaveApp.getSlaveId());
+        // 判断目标节点是否适合此版本
+        AppPackage appPackage = appMapper.findAppPackageById(pkgId);
+        int appId = appPackage.getAppId();
+        App app = Global.getAppStore().getApp(appId);
+        AppPackage slaveAppPackage = appMapper.findSlaveAppPackage(slaveAppId);
+
+        if (slaveAppPackage != null && slaveAppPackage.getId() >= appPackage.getId()) {
+            if (slaveAppPackage.getId() == appPackage.getId()) {
+                // 版本一致,忽略更新
+                res.put("code", 1);
+                res.put("message", "更新忽略(原版本一致)");
+            } else {
+                // 版本回退
+                res.put("code", 1);
+                Object[] args = new Object[]{slave.getIp(), app.getAppName(), slaveAppPackage.getVersion(), appPackage.getVersion()};
+                res.put("message", MessageFormatter.arrayFormat("节点[{}]的应用[{}]回退成功!{}->{}", args));
+            }
+        } else {
+            // 获取目标更新包之前最近的一个全量包id
+            int lastFullPkgId = appMapper.findLastFullAppPackage(appId, pkgId);
+            // 未部署
+            if (slaveAppPackage == null) {
+                updates(slave, appId, lastFullPkgId, pkgId);
+            } else {
+                int startPkgId = slaveAppPackage.getId();
+                // 获取指定更新包与当前更新包之间的版本,若包含全量包,则从最近一个全量包开始
+                if(lastFullPkgId > startPkgId) {
+                    startPkgId = lastFullPkgId;
+                    //跨全量包更新时,备份原有项目
+                    backupSlaveApp(slaveApp);
+                } else {
+                    // 当前版本跳过
+                    startPkgId = startPkgId + 1;
+                }
+                updates(slave, appId, startPkgId, pkgId);
+            }
+            updateVersion(slaveApp.getId(), pkgId);
+            res.put("code", 1);
+            Object[] args = new Object[]{slave.getIp(), app.getAppName(), slaveAppPackage.getVersion(), appPackage.getVersion()};
+            res.put("message", MessageFormatter.arrayFormat("节点[{}]的应用[{}]更新成功!{}->{}", args));
+        }
+
+        return res;
+    }
+
+    /**
+     * 全量更新前,备份原有应用
+     *
+     * @param slaveApp
+     */
+    private void backupSlaveApp(SlaveApp slaveApp) {
+        Order order = new Order();
+        order.setType(Constant.CMD_APP_BACKUP);
+        Map<String, Object> req = new HashMap<>();
+        req.put("slaveAppId", slaveApp.getId());
+        order.setReqData(req);
+        CmdSender.handOutSync(order, slaveApp.getSlaveId(), 30 * 1000);
+    }
+
+    private void updates(Slave slave, int appId, int startPkgId, int endPkgId) {
+        List<AppPackage> packages = appMapper.findUpdates(appId, startPkgId, endPkgId);
+        if (packages.size() > 0) {
+            for (AppPackage ap : packages) {
+                List<FileDTO> files = appMapper.loadAppPackageFiles(ap.getId());
+                FileSender.handOut(files, slave);
+            }
+        }
+    }
+
+    private void updateVersion(int slaveAppId, int pkgId) {
+        slaveMapper.updateSlaveAppVersion(slaveAppId, pkgId);
+    }
+
+    /**
+     * 节点版本更新
+     *
+     * @param slaves
+     * @param pkgId
+     */
+    public List<Map<String, Object>> updateToSlaves(int[] slaves, int pkgId) {
+        List<Map<String, Object>> response = new ArrayList<>();
+        for (int slaveId : slaves) {
+            response.add(updateToSlave(slaveId, pkgId));
+        }
+        return response;
     }
 
     public void setAppPath(String appPath) {

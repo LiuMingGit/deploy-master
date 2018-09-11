@@ -67,6 +67,11 @@ public class MasterController {
         return new HttpResult(apps);
     }
 
+    /**
+     * 删除应用
+     * @param appId
+     * @return
+     */
     @RequestMapping(value = {"/delete"}, method = RequestMethod.GET)
     public HttpResult deleteApp(int appId) {
         // 判断应用是否被使用

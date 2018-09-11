@@ -6,6 +6,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /**
  * 遍历指定目录中的所有文件
@@ -13,6 +14,7 @@ import org.springframework.context.annotation.ComponentScan;
  *
  * @author yangl
  */
+@EnableTransactionManagement
 @SpringBootApplication
 @ComponentScan(basePackages = "com.bsoft.deploy")
 @MapperScan("com.bsoft.deploy.dao.mapper")

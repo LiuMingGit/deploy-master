@@ -34,6 +34,16 @@ public class CmdSender {
      * @param slaveAppId 目标节点应用id
      */
     public static void handOutSync(Order order, int slaveAppId) {
+        handOutSync(order, slaveAppId, CMD_TIME_OUT);
+    }
+
+    /**
+     *
+     * @param order      指令内容
+     * @param slaveAppId 目标节点应用id
+     * @param timeout 命令执行超时时间 单位:ms
+     */
+    public static void handOutSync(Order order, int slaveAppId, long timeout) {
         ChannelGroup group = SimpleFileServerHandler.channels;
         boolean slaveOnline = false;
         int slaveId = Global.getSlaveStore().getSlaveApp(slaveAppId).getSlaveId();
@@ -48,7 +58,7 @@ public class CmdSender {
                 waiters.put(uuid, order);
                 ch.writeAndFlush(order);
                 try {
-                    latch.await(CMD_TIME_OUT, TimeUnit.MILLISECONDS);
+                    latch.await(timeout, TimeUnit.MILLISECONDS);
                 } catch (Exception e) {
                     logger.error("命令[{}]调用失败!", order.getType(), e);
                 }

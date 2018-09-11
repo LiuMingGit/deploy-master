@@ -11,6 +11,7 @@ import io.netty.channel.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.RecursiveAction;
@@ -25,6 +26,10 @@ public class FileWorker extends RecursiveAction {
     private static final Logger logger = LoggerFactory.getLogger(FileWorker.class);
     private static final int THRESHOLD = 50;
     /**
+     * 需要同步的目标节点
+     */
+    private Slave slave;
+    /**
      * 子节点
      */
     private Channel channel;
@@ -33,7 +38,8 @@ public class FileWorker extends RecursiveAction {
      */
     private List<FileDTO> files;
 
-    public FileWorker(Channel channel, List<FileDTO> files) {
+    public FileWorker(Slave slave, Channel channel, List<FileDTO> files) {
+        this.slave = slave;
         this.channel = channel;
         this.files = files;
     }
@@ -58,19 +64,22 @@ public class FileWorker extends RecursiveAction {
                     FileLog log = new FileLog();
                     setSlave(log, channel);
                     int logId = saveLog(file, log);
-                    AppFile f = new AppFile(file.getPath(),
-                            Global.getAppBasePath(file.getAppId()));
+                    String basePath = Global.getAppStore().getApp(file.getAppId()).getPath()
+                            + File.separator + "version_" + file.getPkgId() + File.separator;
+                    basePath = basePath.replaceAll("\\\\","/").replaceAll("//","/");
+                    int slaveAppId = Global.getSlaveStore().getSlaveApp(slave.getId(), file.getAppId()).getId();
+                    AppFile f = new AppFile(file.getPath(), basePath);
                     f.setLogId(logId);
                     f.setId(file.getId());
                     f.setMark(file.getMark());
-                    f.setAppId(file.getAppId());
+                    f.setSlaveAppId(slaveAppId);
                     channel.writeAndFlush(f);
 
                 } catch (Exception e) {
                     logger.error("文件{}同步失败!", file.getFilename(), e);
                     FileLog log = new FileLog();
                     log.setStatus(-1);
-                    log.setMessage(e.getMessage());
+                    log.setMessage(e.getMessage().substring(0, 300));
                     setSlave(log, channel);
                     saveLog(file, log);
                 }
@@ -78,8 +87,8 @@ public class FileWorker extends RecursiveAction {
         } else {
             //拆分任务
             int middle = files.size() / 2;
-            FileWorker leftTask = new FileWorker(channel, files.subList(0, middle));
-            FileWorker rightTask = new FileWorker(channel, files.subList(middle + 1, files.size() - 1));
+            FileWorker leftTask = new FileWorker(slave, channel, files.subList(0, middle));
+            FileWorker rightTask = new FileWorker(slave, channel, files.subList(middle + 1, files.size() - 1));
             leftTask.fork();
             rightTask.fork();
         }
@@ -101,6 +110,7 @@ public class FileWorker extends RecursiveAction {
         AppFileMapper fileMapper = Global.getFileMapper();
         log.setAppId(file.getAppId());
         log.setFileId(file.getId());
+        log.setPkgId(file.getPkgId());
         log.setMark(file.getMark());
         log.setOptime(new Date());
         int flag = fileMapper.saveFileTransferLog(log);

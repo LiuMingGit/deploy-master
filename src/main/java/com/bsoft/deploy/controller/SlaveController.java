@@ -185,6 +185,33 @@ public class SlaveController {
         return new HttpResult(slaves);
     }
 
+    /**
+     * 获取子节点应用的更新包列表
+     *
+     * @return
+     */
+    @RequestMapping(value = {"/updates"}, method = RequestMethod.GET)
+    public HttpResult slaveAppUpdateList(int slaveAppId) {
+        SlaveApp slaveApp = slaveService.findSlaveApp(slaveAppId);
+        int pkgId = slaveApp.getPkgId();
+        int appId = slaveApp.getAppId();
+        return new HttpResult(appService.getUpdates(appId, pkgId));
+    }
+
+
+    /**
+     * 节点更新指定的更新包
+     *
+     * @param slaveAppId
+     * @param pkgId
+     * @return
+     */
+    @RequestMapping(value = {"/update"}, method = RequestMethod.GET)
+    public HttpResult slaveAppUpdate(int slaveAppId, int pkgId) {
+        Map result = appService.slaveAppUpdate(slaveAppId, pkgId);
+        return new HttpResult(result);
+    }
+
     @RequestMapping(value = {"/sync"}, method = RequestMethod.POST)
     public HttpResult syncSlave(@RequestBody String jsonData) {
         Map<String, Object> body = (Map<String, Object>) JSONUtils.parse(jsonData);

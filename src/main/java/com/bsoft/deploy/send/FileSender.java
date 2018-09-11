@@ -1,6 +1,7 @@
 package com.bsoft.deploy.send;
 
 import com.bsoft.deploy.dao.entity.FileDTO;
+import com.bsoft.deploy.dao.entity.Slave;
 import com.bsoft.deploy.file.FileWorker;
 import com.bsoft.deploy.netty.server.SimpleFileServerHandler;
 import io.netty.channel.Channel;
@@ -33,12 +34,12 @@ public class FileSender {
      * 发送单个文件到指定节点
      *
      * @param file
-     * @param targetIp
+     * @param slave
      */
-    public static void handOut(FileDTO file, String targetIp) {
+    public static void handOut(FileDTO file, Slave slave) {
         ChannelGroup group = SimpleFileServerHandler.channels;
         for (Channel ch : group) {
-            if (ch.remoteAddress().toString().contains(targetIp)) {
+            if (ch.remoteAddress().toString().contains(slave.getIp())) {
                 // @todo 记录同步日志
                 ch.writeAndFlush(file);
             }
@@ -49,13 +50,13 @@ public class FileSender {
      * 发送文件列表
      *
      * @param files
-     * @param targetIp
+     * @param slave
      */
-    public static void handOut(List<FileDTO> files, String targetIp) {
+    public static void handOut(List<FileDTO> files, Slave slave) {
         ChannelGroup group = SimpleFileServerHandler.channels;
         for (Channel ch : group) {
-            if (ch.remoteAddress().toString().contains(targetIp)) {
-                new FileWorker(ch, files).compute();
+            if (ch.remoteAddress().toString().contains(slave.getIp())) {
+                new FileWorker(slave, ch, files).compute();
             }
         }
     }
@@ -64,30 +65,17 @@ public class FileSender {
      * 发送文件列表到目标节点群
      *
      * @param files
-     * @param targetIps
+     * @param slaves
      */
-    public static void handOut(List<FileDTO> files, List<String> targetIps) {
+    public static void handOut(List<FileDTO> files, List<Slave> slaves) {
         ChannelGroup group = SimpleFileServerHandler.channels;
         for (Channel ch : group) {
-            for (String targetIp : targetIps) {
-                if (ch.remoteAddress().toString().contains(targetIp)) {
-                    new FileWorker(ch, files).compute();
+            for (Slave slave : slaves) {
+                if (ch.remoteAddress().toString().contains(slave.getIp())) {
+                    new FileWorker(slave, ch, files).compute();
                 }
             }
         }
     }
-
-    /**
-     * 发送文件列表至所有节点
-     *
-     * @param files
-     */
-    public static void handOut(List<FileDTO> files) {
-        ChannelGroup group = SimpleFileServerHandler.channels;
-        for (Channel ch : group) {
-            new FileWorker(ch, files).compute();
-        }
-    }
-
 
 }

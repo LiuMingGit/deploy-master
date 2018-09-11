@@ -67,7 +67,7 @@ public class SlaveService {
     }
 
     public SlaveApp findSlaveApp(int id) {
-        return slaveMapper.findSlaveApp(id);
+        return slaveMapper.findSlaveAppById(id);
     }
 
     public void deleteSlave(int id) {
