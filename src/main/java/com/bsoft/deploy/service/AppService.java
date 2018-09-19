@@ -3,12 +3,13 @@ package com.bsoft.deploy.service;
 import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.dao.entity.App;
 import com.bsoft.deploy.dao.entity.AppPackage;
+import com.bsoft.deploy.dao.entity.Guard;
 import com.bsoft.deploy.dao.mapper.AppMapper;
 import com.bsoft.deploy.file.FileWalker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -83,9 +84,26 @@ public class AppService {
      * @param slaveAppId
      * @param pkgId
      */
-    @Transactional
-    public Map<String,Object> slaveAppUpdate(int slaveAppId, int pkgId) {
+    public Map<String, Object> slaveAppUpdate(int slaveAppId, int pkgId) {
         FileWalker fw = Global.getAppContext().getBean(FileWalker.class);
-        return fw.updateToSlave(slaveAppId, pkgId);
+        // 判断节点是否执行更新
+        if (!fw.isRunning(slaveAppId)) {
+            return fw.updateToSlave(slaveAppId, pkgId);
+        } else {
+            Map<String, Object> res = new HashMap<>();
+            res.put("code", 9);
+            res.put("guard", fw.getGuard(slaveAppId));
+            return res;
+        }
+    }
+
+    public Guard slaveAppGuard(int slaveAppId) {
+        FileWalker fw = Global.getAppContext().getBean(FileWalker.class);
+        return fw.getGuard(slaveAppId);
+    }
+
+    public void slaveAppUpdateFinish(int slaveAppId) {
+        FileWalker fw = Global.getAppContext().getBean(FileWalker.class);
+        fw.finish(slaveAppId);
     }
 }

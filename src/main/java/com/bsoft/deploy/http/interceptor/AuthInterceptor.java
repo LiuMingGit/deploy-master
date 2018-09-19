@@ -2,8 +2,11 @@ package com.bsoft.deploy.http.interceptor;
 
 import com.alibaba.fastjson.JSON;
 import com.bsoft.deploy.context.Global;
+import com.bsoft.deploy.dao.entity.User;
 import com.bsoft.deploy.http.HttpResult;
+import com.bsoft.deploy.service.UserService;
 import com.bsoft.deploy.utils.StringUtils;
+import com.bsoft.deploy.utils.UserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -25,10 +28,14 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object o) throws Exception {
-        System.out.println(request.getHeader("Origin"));
+        // System.out.println(request.getHeader("Origin"));
         String ticket = request.getHeader("X-Token");
+        // url参数模式,满足部分不适合修改header的场景
+        if(StringUtils.isEmpty(ticket)) {
+            ticket = request.getParameter("X-Token");
+        }
         String path = request.getServletPath();
-        System.out.println("path:" + path + ",X-Token:" + ticket);
+        // System.out.println("path:" + path + ",X-Token:" + ticket);
         if ("OPTIONS".equals(request.getMethod())) {
             return true;
         }
@@ -41,6 +48,10 @@ public class AuthInterceptor implements HandlerInterceptor {
             out.print(JSON.toJSONString(result));
             logger.warn("没有权限访问地址" + path);
             return false;
+        } else {
+            String uid = Global.getTokenStore().get(ticket).getUid();
+            User user = Global.getAppContext().getBean(UserService.class).findUserById(uid);
+            UserUtils.setCurrentUser(user);
         }
 
         return true;
@@ -53,6 +64,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     @Override
     public void afterCompletion(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object o, Exception e) throws Exception {
-
+        // 清空线程变量
+        UserUtils.clear();
     }
 }

@@ -11,6 +11,8 @@ import com.bsoft.deploy.netty.server.SimpleFileServerHandler;
 import com.bsoft.deploy.service.AppService;
 import com.bsoft.deploy.service.SlaveService;
 import com.bsoft.deploy.utils.DateUtils;
+import com.bsoft.deploy.utils.FileUtils;
+import com.bsoft.deploy.utils.StringUtils;
 import io.netty.channel.Channel;
 import io.netty.channel.group.ChannelGroup;
 import org.slf4j.Logger;
@@ -67,12 +69,13 @@ public class SlaveController {
     @RequestMapping(value = {"/save"}, method = RequestMethod.POST)
     public HttpResult saveSlave(@RequestBody String jsonData) {
         Slave slave = JSON.parseObject(jsonData, Slave.class);
-        if (com.bsoft.deploy.utils.StringUtils.isEmpty(slave.getId()) || slave.getId() == 0) {
+        if (StringUtils.isEmpty(slave.getId()) || slave.getId() == 0) {
             slaveService.saveSlave(slave);
         } else {
             slaveService.updateSlave(slave);
         }
         Global.getSlaveStore().reloadAll();
+        slaveService.reloadCache();
         return new HttpResult(slave);
     }
 
@@ -84,12 +87,17 @@ public class SlaveController {
     @RequestMapping(value = {"/app/save"}, method = RequestMethod.POST)
     public HttpResult saveSlaveApp(@RequestBody String jsonData) {
         SlaveApp slaveApp = JSON.parseObject(jsonData, SlaveApp.class);
-        if (com.bsoft.deploy.utils.StringUtils.isEmpty(slaveApp.getId()) || slaveApp.getId() == 0) {
+        // 格式化路径
+        slaveApp.setAppTomcatHome(FileUtils.pathFormat(slaveApp.getAppTomcatHome()));
+        slaveApp.setAppBackupPath(FileUtils.pathFormat(slaveApp.getAppBackupPath()));
+        slaveApp.setAppTargetPath(FileUtils.pathFormat(slaveApp.getAppTargetPath()));
+        if (StringUtils.isEmpty(slaveApp.getId()) || slaveApp.getId() == 0) {
             slaveService.saveSlaveApp(slaveApp);
         } else {
             slaveService.updateSlaveApp(slaveApp);
+            Global.getSlaveStore().reloadSlaveApp(slaveApp.getId());
         }
-        Global.getSlaveStore().reloadAll();
+
         return new HttpResult(slaveApp);
     }
 
@@ -211,6 +219,30 @@ public class SlaveController {
         Map result = appService.slaveAppUpdate(slaveAppId, pkgId);
         return new HttpResult(result);
     }
+
+    /**
+     * 节点应用更新进度
+     *
+     * @param slaveAppId
+     * @return
+     */
+    @RequestMapping(value = {"/update/process"}, method = RequestMethod.GET)
+    public HttpResult slaveAppUpdateProcess(int slaveAppId) {
+        return new HttpResult(appService.slaveAppGuard(slaveAppId));
+    }
+
+    /**
+     * 节点应用更新进度
+     *
+     * @param slaveAppId
+     * @return
+     */
+    @RequestMapping(value = {"/update/finish"}, method = RequestMethod.GET)
+    public HttpResult slaveAppUpdateFinish(int slaveAppId) {
+        appService.slaveAppUpdateFinish(slaveAppId);
+        return new HttpResult();
+    }
+
 
     @RequestMapping(value = {"/sync"}, method = RequestMethod.POST)
     public HttpResult syncSlave(@RequestBody String jsonData) {

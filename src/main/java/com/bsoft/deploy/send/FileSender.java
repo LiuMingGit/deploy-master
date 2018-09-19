@@ -1,6 +1,7 @@
 package com.bsoft.deploy.send;
 
 import com.bsoft.deploy.dao.entity.FileDTO;
+import com.bsoft.deploy.dao.entity.Guard;
 import com.bsoft.deploy.dao.entity.Slave;
 import com.bsoft.deploy.file.FileWorker;
 import com.bsoft.deploy.netty.server.SimpleFileServerHandler;
@@ -52,11 +53,11 @@ public class FileSender {
      * @param files
      * @param slave
      */
-    public static void handOut(List<FileDTO> files, Slave slave) {
+    public static void handOut(List<FileDTO> files, Slave slave, Guard guard) {
         ChannelGroup group = SimpleFileServerHandler.channels;
         for (Channel ch : group) {
             if (ch.remoteAddress().toString().contains(slave.getIp())) {
-                new FileWorker(slave, ch, files).compute();
+                new FileWorker(guard, ch, files).compute();
             }
         }
     }
@@ -67,15 +68,16 @@ public class FileSender {
      * @param files
      * @param slaves
      */
-    public static void handOut(List<FileDTO> files, List<Slave> slaves) {
+    public static void handOut(List<FileDTO> files, List<Slave> slaves , Guard guard) {
         ChannelGroup group = SimpleFileServerHandler.channels;
         for (Channel ch : group) {
             for (Slave slave : slaves) {
                 if (ch.remoteAddress().toString().contains(slave.getIp())) {
-                    new FileWorker(slave, ch, files).compute();
+                    new FileWorker(guard, ch, files).compute();
                 }
             }
         }
     }
+
 
 }

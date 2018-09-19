@@ -1,6 +1,9 @@
 package com.bsoft.deploy.netty.server;
 
+import com.bsoft.deploy.context.Constant;
+import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.dao.entity.Order;
+import com.bsoft.deploy.file.FileWalker;
 import com.bsoft.deploy.send.CmdSender;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -53,7 +56,16 @@ public class SimpleFileServerHandler extends SimpleChannelInboundHandler<Object>
                     order.setRespData(reply.getRespData());
                     order.getLatch().countDown();
                 }
+            } else {
+                dealOrder(reply);
             }
+        }
+    }
+
+    private void dealOrder(Order order) {
+        if(Constant.CMD_FILE_STATUS.equals(order.getType())) {
+            FileWalker fw = Global.getAppContext().getBean(FileWalker.class);
+            fw.reply(order.getRespData());
         }
     }
 

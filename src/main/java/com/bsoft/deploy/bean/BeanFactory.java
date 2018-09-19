@@ -29,10 +29,6 @@ public class BeanFactory {
         return new FileSender();
     }
 
-    @Bean
-    FileWalkerFactory createFileWalkerFactory() {
-        return new FileWalkerFactory();
-    }
 
     @Bean
     Global initGlobal() {
