@@ -9,7 +9,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /**
- * 遍历指定目录中的所有文件
+ * 主节点应用
  * Created on 2018/8/6.
  *
  * @author yangl

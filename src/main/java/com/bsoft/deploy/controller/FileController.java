@@ -1,14 +1,14 @@
 package com.bsoft.deploy.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.bsoft.deploy.context.Global;
+import com.bsoft.deploy.dao.entity.FileDTO;
 import com.bsoft.deploy.file.FileWalker;
 import com.bsoft.deploy.http.HttpResult;
 import com.bsoft.deploy.service.AppFileService;
+import com.bsoft.deploy.utils.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
 import java.util.HashMap;
@@ -26,7 +26,7 @@ import java.util.Map;
 public class FileController {
 
     @Autowired
-    private AppFileService fileService;
+    AppFileService appFileService;
 
     /**
      * 获取应用文件列表(文件系统)
@@ -38,7 +38,7 @@ public class FileController {
     public HttpResult fileList(@RequestParam String path) {
         // FileWalkerFactory factory = Global.getAppContext().getBean(FileWalkerFactory.class);
         FileWalker fileWalker = Global.getAppContext().getBean(FileWalker.class);
-
+        path = FileUtils.pathFormat(path);
         List<Map<String, Object>> fileTree = fileWalker.getFileTree(path);
         if (fileTree.size() == 1) {
             Map<String, Object> father = fileTree.get(0);
@@ -72,9 +72,34 @@ public class FileController {
     public HttpResult fileProp(@RequestParam int appId, @RequestParam int pkgId) {
         HashMap<String, Object> prop = new HashMap<>(2);
         String path = Global.getAppStore().getApp(appId).getPath() + File.separator + "version_" + pkgId + File.separator;
+        FileWalker fw = Global.getAppContext().getBean(FileWalker.class);
         prop.put("appPath", path);
+        prop.put("appFileCount", fw.getFilesCount(new File(path)));
         return new HttpResult(prop);
     }
 
+
+    /**
+     * 更新忽略
+     *
+     * @param jsonData
+     * @return
+     */
+    @RequestMapping(value = {"/ignore"}, method = RequestMethod.POST)
+    public HttpResult saveApp(@RequestBody String jsonData) {
+        HashMap data = JSON.parseObject(jsonData, HashMap.class);
+        int appId = (int) data.get("appId");
+        String path = (String) data.get("path");
+        String fileName = (String) data.get("name");
+        FileDTO file = appFileService.loadAppIgnoreFile(appId, path);
+        if(file == null) {
+            file = new FileDTO();
+            file.setAppId(appId);
+            file.setFilename(fileName);
+            file.setPath(path);
+            appFileService.saveAppFile(file);
+        }
+        return new HttpResult();
+    }
 
 }

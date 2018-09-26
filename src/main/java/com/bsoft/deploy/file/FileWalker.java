@@ -5,7 +5,6 @@ import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.dao.entity.*;
 import com.bsoft.deploy.dao.mapper.AppFileMapper;
 import com.bsoft.deploy.dao.mapper.AppMapper;
-import com.bsoft.deploy.dao.mapper.SlaveAppFileMapper;
 import com.bsoft.deploy.dao.mapper.SlaveMapper;
 import com.bsoft.deploy.send.CmdSender;
 import com.bsoft.deploy.send.FileSender;
@@ -38,14 +37,27 @@ public class FileWalker {
     private SlaveMapper slaveMapper;
     @Autowired
     private AppMapper appMapper;
-    @Autowired
-    private SlaveAppFileMapper slaveAppFileMapper;
 
     /**
      * 记录正在同步的更新包信息
      */
     private ConcurrentHashMap<Integer, Guard> slaveApps = new ConcurrentHashMap<>();
 
+    public long getFilesCount(File dir) {
+        long totalCount = 0;
+        if (!dir.exists()) {
+            return 0;
+        }
+        File[] files = dir.listFiles();
+        for (File f : files) {
+            if (f.isDirectory()) {
+                totalCount += getFilesCount(f);
+            } else {
+                totalCount++;
+            }
+        }
+        return totalCount;
+    }
 
     /**
      * 获取path路径下的文件列表
@@ -119,7 +131,7 @@ public class FileWalker {
             fileMapper.savePackageFile(fileDTO);
         } else {
             String md5 = FileUtils.getFileMd5(file);
-            if (!StringUtils.equals(fileDTO.getMark(), md5)) {
+            if (!StringUtils.isEq(fileDTO.getMark(), md5)) {
                 // 更新文件
                 fileDTO.setMark(md5);
                 fileDTO.setOptime(new Date());
@@ -171,7 +183,7 @@ public class FileWalker {
 
                 res.put("code", 9);
                 Object[] args = new Object[]{(slaveAppPackage == null ? "空" : slaveAppPackage.getVersion()), appPackage.getVersion()};
-                res.put("message", MessageFormatter.arrayFormat("原始版本:{}->目标版本:{},更新中,请稍后...", args).getMessage());
+                res.put("message", MessageFormatter.arrayFormat("原始版本:{}->目标版本:{}", args).getMessage());
             }
         } catch (Exception e) {
             logger.error("应用更新失败!", e);
@@ -232,9 +244,13 @@ public class FileWalker {
         return slaveApps.containsKey(slaveAppId);
     }
 
-    public void finish(int slaveAppId) {
+    public void success(int slaveAppId) {
         Guard guard = slaveApps.get(slaveAppId);
         updateVersion(slaveAppId, guard.getPkgId());
+        slaveApps.remove(slaveAppId);
+    }
+
+    public void fail(int slaveAppId) {
         slaveApps.remove(slaveAppId);
     }
 
@@ -254,7 +270,7 @@ class UpdateWorker extends Thread {
     @Autowired
     private AppMapper appMapper;
     @Autowired
-    private SlaveAppFileMapper slaveAppFileMapper;
+    private SlaveMapper slaveMapper;
 
     public UpdateWorker(SlaveApp slaveApp, Guard guard, int pkgId) {
         this.slaveApp = slaveApp;
@@ -262,7 +278,7 @@ class UpdateWorker extends Thread {
         this.pkgId = pkgId;
         user = UserUtils.getCurrentUser();
         appMapper = Global.getAppContext().getBean(AppMapper.class);
-        slaveAppFileMapper = Global.getAppContext().getBean(SlaveAppFileMapper.class);
+        slaveMapper = Global.getAppContext().getBean(SlaveMapper.class);
     }
 
     @Override
@@ -278,7 +294,7 @@ class UpdateWorker extends Thread {
             log.setNewPkgId(pkgId);
             log.setOptime(new Date());
             log.setOpuser(user.getId());
-            slaveAppFileMapper.saveUpdateLog(log);
+            slaveMapper.saveUpdateLog(log);
             guard.setUpdateId(log.getId());
 
             // 获取目标更新包之前最近的一个全量包id
@@ -320,7 +336,7 @@ class UpdateWorker extends Thread {
         Map<String, Object> req = new HashMap<>();
         req.put("slaveAppId", slaveApp.getId());
         order.setReqData(req);
-        CmdSender.handOutSync(order, slaveApp.getSlaveId(), 30 * 1000);
+        CmdSender.handOutSync(order, slaveApp.getId(), 30 * 1000);
     }
 
     private void updates(Slave slave, int startPkgId, int endPkgId) {
@@ -328,11 +344,20 @@ class UpdateWorker extends Thread {
         if (packages.size() > 0) {
             for (AppPackage ap : packages) {
                 List<FileDTO> files = appMapper.loadAppPackageFiles(ap.getId());
+                // 判断文件数目是否一致(防止人为修改)
+                String path = Global.getAppStore().getApp(ap.getAppId()).getPath() + File.separator + "version_" + ap.getId() + File.separator;
+                FileWalker fw = Global.getAppContext().getBean(FileWalker.class);
+                long fileCount = fw.getFilesCount(new File(path));
+                if (fileCount != files.size()) {
+                    guard.setFail(true);
+                    guard.setMessage("更新失败,更新包[" + ap.getVersion() + "]更新包被非法修改,请检查更新包!");
+                    return;
+                }
                 guard.addTotalFiles(files.size());
                 FileSender.handOut(files, slave, guard);
             }
         }
-        if(guard.getTotalFiles() == 0) {
+        if (guard.getTotalFiles() == 0) {
             guard.setFail(true);
             guard.setMessage("更新失败,更新包未包含任何有效文件!");
         }

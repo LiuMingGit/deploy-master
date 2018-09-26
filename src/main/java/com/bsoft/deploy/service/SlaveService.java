@@ -5,7 +5,6 @@ import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.dao.entity.Order;
 import com.bsoft.deploy.dao.entity.Slave;
 import com.bsoft.deploy.dao.entity.SlaveApp;
-import com.bsoft.deploy.dao.mapper.SlaveAppFileMapper;
 import com.bsoft.deploy.dao.mapper.SlaveMapper;
 import com.bsoft.deploy.send.CmdSender;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,9 +25,6 @@ public class SlaveService {
     @Autowired
     private SlaveMapper slaveMapper;
 
-    @Autowired
-    private SlaveAppFileMapper slaveAppFileMapper;
-
     public List<Slave> loadSlaves() {
         return slaveMapper.loadSlaves();
     }
@@ -43,7 +39,7 @@ public class SlaveService {
     }
 
     public List<SlaveApp> loadSlaves(int appId) {
-        return slaveAppFileMapper.findSlaveApps(appId);
+        return slaveMapper.findSlaveApps(appId);
     }
 
     public void saveSlave(Slave slave) {
@@ -64,6 +60,10 @@ public class SlaveService {
 
     public Slave findSlave(int id) {
         return slaveMapper.findSlave(id);
+    }
+
+    public Slave findSlave(String ip) {
+        return slaveMapper.findSlaveByIp(ip);
     }
 
     public SlaveApp findSlaveApp(int id) {

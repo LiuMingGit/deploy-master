@@ -90,9 +90,10 @@ public class AppService {
         if (!fw.isRunning(slaveAppId)) {
             return fw.updateToSlave(slaveAppId, pkgId);
         } else {
+            Guard guard = fw.getGuard(slaveAppId);
             Map<String, Object> res = new HashMap<>();
+            res.put("guard", guard);
             res.put("code", 9);
-            res.put("guard", fw.getGuard(slaveAppId));
             return res;
         }
     }
@@ -102,8 +103,13 @@ public class AppService {
         return fw.getGuard(slaveAppId);
     }
 
-    public void slaveAppUpdateFinish(int slaveAppId) {
+    public void slaveAppUpdateSuccess(int slaveAppId) {
         FileWalker fw = Global.getAppContext().getBean(FileWalker.class);
-        fw.finish(slaveAppId);
+        fw.success(slaveAppId);
+    }
+
+    public void slaveAppUpdateFail(int slaveAppId) {
+        FileWalker fw = Global.getAppContext().getBean(FileWalker.class);
+        fw.fail(slaveAppId);
     }
 }

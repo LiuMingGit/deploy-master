@@ -11,6 +11,8 @@ import com.bsoft.deploy.service.AppService;
 import com.bsoft.deploy.service.SlaveService;
 import com.bsoft.deploy.utils.FileUtils;
 import com.bsoft.deploy.utils.StringUtils;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +71,7 @@ public class MasterController {
 
     /**
      * 删除应用
+     *
      * @param appId
      * @return
      */
@@ -103,18 +106,6 @@ public class MasterController {
         return new HttpResult(app);
     }
 
-    /**
-     * 初始化应用,设置初始版本
-     *
-     * @param appId
-     * @return
-     */
-    @RequestMapping(value = {"/init"}, method = RequestMethod.GET)
-    public HttpResult saveApp(int appId) {
-
-        return new HttpResult();
-    }
-
 
     /**
      * 获取应用更新包列表
@@ -122,9 +113,11 @@ public class MasterController {
      * @return
      */
     @RequestMapping(value = {"/packages"}, method = RequestMethod.GET)
-    public HttpResult appPackageList(int appId) {
+    public HttpResult appPackageList(int appId, int pageNum, int pageSize) {
+        PageHelper.startPage(pageNum, pageSize);
         List<AppPackage> pkgs = appService.loadAppPackages(appId);
-        return new HttpResult(pkgs);
+        PageInfo<AppPackage> pageInfo = new PageInfo<AppPackage>(pkgs);
+        return new HttpResult(pageInfo);
     }
 
 
@@ -157,7 +150,7 @@ public class MasterController {
     }
 
     /**
-     * 上传更新包(支持zip压缩包上传)
+     * 上传更新包(支持zip,war压缩包上传)
      *
      * @return
      */
@@ -185,14 +178,14 @@ public class MasterController {
         // 文件对象
         MultipartFile file = ((MultipartHttpServletRequest) request).getFile("file");
 
-        System.out.println("receive chunkNumber:" + chunkNumber + ",totalChunks:" + totalChunks);
+        // System.out.println("receive chunkNumber:" + chunkNumber + ",totalChunks:" + totalChunks);
         File toFile = null;
         BufferedOutputStream fos = null;
         try {
             // 确定上传路径
             String app_home = Global.getAppStore().getApp(Integer.parseInt(appId)).getPath() + File.separator + "version_" + pkgId + File.separator;
             String file_path = StringUtils.cleanPath(app_home + relative_path);
-            if (StringUtils.equals("1", totalChunks)) {
+            if (StringUtils.isEq("1", totalChunks)) {
                 toFile = new File(file_path);
                 if (!toFile.exists()) {
                     String dir = FileUtils.getFilePath(file_path);

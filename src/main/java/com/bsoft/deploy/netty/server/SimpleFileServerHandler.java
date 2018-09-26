@@ -27,19 +27,11 @@ public class SimpleFileServerHandler extends SimpleChannelInboundHandler<Object>
 
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
-        Channel incoming = ctx.channel();
-        for (Channel channel : channels) {
-            channel.writeAndFlush("[SERVER] - " + incoming.remoteAddress() + " 加入\n");
-        }
         channels.add(ctx.channel());
     }
 
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-        Channel incoming = ctx.channel();
-        for (Channel channel : channels) {
-            channel.writeAndFlush("[SERVER] - " + incoming.remoteAddress() + " 离开\n");
-        }
         channels.remove(ctx.channel());
     }
 
@@ -63,7 +55,7 @@ public class SimpleFileServerHandler extends SimpleChannelInboundHandler<Object>
     }
 
     private void dealOrder(Order order) {
-        if(Constant.CMD_FILE_STATUS.equals(order.getType())) {
+        if (Constant.CMD_FILE_STATUS.equals(order.getType())) {
             FileWalker fw = Global.getAppContext().getBean(FileWalker.class);
             fw.reply(order.getRespData());
         }

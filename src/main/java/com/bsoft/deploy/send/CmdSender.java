@@ -2,13 +2,16 @@ package com.bsoft.deploy.send;
 
 import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.dao.entity.Order;
+import com.bsoft.deploy.exception.SlaveExecuteException;
 import com.bsoft.deploy.exception.SlaveOfflineException;
 import com.bsoft.deploy.netty.server.SimpleFileServerHandler;
+import com.bsoft.deploy.utils.StringUtils;
 import io.netty.channel.Channel;
 import io.netty.channel.group.ChannelGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -38,10 +41,9 @@ public class CmdSender {
     }
 
     /**
-     *
      * @param order      指令内容
      * @param slaveAppId 目标节点应用id
-     * @param timeout 命令执行超时时间 单位:ms
+     * @param timeout    命令执行超时时间 单位:ms
      */
     public static void handOutSync(Order order, int slaveAppId, long timeout) {
         ChannelGroup group = SimpleFileServerHandler.channels;
@@ -63,6 +65,10 @@ public class CmdSender {
                     logger.error("命令[{}]调用失败!", order.getType(), e);
                 }
                 waiters.remove(uuid);
+                Map resp = order.getRespData();
+                if (!"200".equals(resp.get("code").toString())) {
+                    throw new SlaveExecuteException(StringUtils.toString(resp.get("message")));
+                }
             }
         }
         if (!slaveOnline) {

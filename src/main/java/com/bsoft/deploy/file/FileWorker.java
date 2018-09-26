@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.net.InetSocketAddress;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.RecursiveAction;
@@ -84,9 +85,10 @@ public class FileWorker extends RecursiveAction {
             }
         } else {
             //拆分任务
+            // System.out.println("任务分解:"+files.size());
             int middle = files.size() / 2;
             FileWorker leftTask = new FileWorker(guard, channel, files.subList(0, middle));
-            FileWorker rightTask = new FileWorker(guard, channel, files.subList(middle + 1, files.size() - 1));
+            FileWorker rightTask = new FileWorker(guard, channel, files.subList(middle, files.size()));
             leftTask.fork();
             rightTask.fork();
         }
@@ -94,18 +96,18 @@ public class FileWorker extends RecursiveAction {
 
     private void setSlave(FileLog log, Channel ch) {
         String ip = getChannelIp(ch);
-        Slave slave = Global.getSlave(ip);
+        Slave slave = Global.getSlaveStore().getSlave(ip);
         log.setSlaveId(slave.getId());
     }
 
     private String getChannelIp(Channel ch) {
-        String address = ch.remoteAddress().toString();
-        return address.substring(1, address.indexOf(":"));
+        InetSocketAddress socket = (InetSocketAddress) ch.remoteAddress();
+        return socket.getHostName();
     }
 
     public static int saveLog(FileDTO file, FileLog log) {
         // System.out.println(log.getMark());
-        AppFileMapper fileMapper = Global.getFileMapper();
+        AppFileMapper fileMapper = Global.getAppContext().getBean(AppFileMapper.class);
         log.setAppId(file.getAppId());
         log.setFileId(file.getId());
         log.setPkgId(file.getPkgId());

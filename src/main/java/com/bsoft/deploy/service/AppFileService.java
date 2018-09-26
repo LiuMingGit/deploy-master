@@ -5,6 +5,8 @@ import com.bsoft.deploy.dao.mapper.AppFileMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * 文件操作service
  * Created on 2018/8/13.
@@ -18,9 +20,19 @@ public class AppFileService {
 
 
 
-    public FileDTO loadAppFile(int appId, String path) {
+    public List<FileDTO> loadAppFile(int appId, String path) {
         return fileMapper.loadAppFile(appId, path);
     }
+
+    public List<FileDTO> loadAppIgnoreFiles(int appId) {
+        return fileMapper.loadAppFilesWithSign(appId, 1);
+    }
+
+    public FileDTO loadAppIgnoreFile(int appId,String path) {
+        return fileMapper.loadAppFileWithSign(appId,path, 1);
+    }
+
+
 
     public void saveAppFile(FileDTO fileDTO) {
         fileMapper.saveAppFile(fileDTO);

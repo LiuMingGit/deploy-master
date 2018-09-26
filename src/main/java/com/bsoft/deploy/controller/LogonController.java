@@ -35,9 +35,11 @@ public class LogonController {
     public HttpResult info(@RequestParam String ticket) {
         Token token =Global.getTokenStore().get(ticket);
         HttpResult result = new HttpResult();
-        User user = userService.findUserById(token.getUid());
-        user.setRoles(Arrays.asList("admin"));
-        result.setData(user);
+        if(token != null) {
+            User user = userService.findUserById(token.getUid());
+            user.setRoles(Arrays.asList("admin"));
+            result.setData(user);
+        }
         return result;
     }
 

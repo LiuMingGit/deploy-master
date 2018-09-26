@@ -238,8 +238,13 @@ public class SlaveController {
      * @return
      */
     @RequestMapping(value = {"/update/finish"}, method = RequestMethod.GET)
-    public HttpResult slaveAppUpdateFinish(int slaveAppId) {
-        appService.slaveAppUpdateFinish(slaveAppId);
+    public HttpResult slaveAppUpdateFinish(int slaveAppId,String status) {
+        if("success".equals(status)) {
+            appService.slaveAppUpdateSuccess(slaveAppId);
+        } else {
+            appService.slaveAppUpdateFail(slaveAppId);
+        }
+
         return new HttpResult();
     }
 
