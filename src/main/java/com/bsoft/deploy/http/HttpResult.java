@@ -11,7 +11,6 @@ public class HttpResult {
     private int code;
     private String message;
     private Object data;
-    private long total;
 
     public HttpResult() {
         this(20000,"success");
@@ -30,23 +29,6 @@ public class HttpResult {
         this.code = code;
         this.message = message;
         this.data = data;
-    }
-
-    /**
-     * 带分页信息
-     * @param code
-     * @param message
-     * @param data
-     * @param total
-     */
-    public HttpResult(int code,String message,Object data,long total) {
-        this(code,message,data);
-        this.total = total;
-    }
-
-    public HttpResult(Object data,long total) {
-        this(data);
-        this.total = total;
     }
 
     public int getCode() {
@@ -73,11 +55,4 @@ public class HttpResult {
         this.data = data;
     }
 
-    public long getTotal() {
-        return total;
-    }
-
-    public void setTotal(long total) {
-        this.total = total;
-    }
 }

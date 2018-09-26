@@ -5,7 +5,6 @@ import com.bsoft.deploy.context.Constant;
 import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.dao.entity.App;
 import com.bsoft.deploy.dao.entity.AppPackage;
-import com.bsoft.deploy.file.FileWalker;
 import com.bsoft.deploy.http.HttpResult;
 import com.bsoft.deploy.service.AppService;
 import com.bsoft.deploy.service.SlaveService;
@@ -224,11 +223,11 @@ public class MasterController {
                     FileUtils.unZip(toFile, app_home);
                     FileUtils.deleteDir(toFile);
                     // 解压后同步状态
-                    toFile = new File(app_home);
+                    // toFile = new File(app_home);
                 }
-                // 同步文件和数据库状态
-                FileWalker fw = Global.getAppContext().getBean(FileWalker.class);
-                fw.syncFile(Integer.parseInt(pkgId), toFile);
+                // 同步文件和数据库状态  // remove by yangl 2018.9.26 取消文件列表存储数据库
+                /*FileWalker fw = Global.getAppContext().getBean(FileWalker.class);
+                fw.syncFile(Integer.parseInt(pkgId), toFile);*/
 
             }
         } catch (Exception e) {
