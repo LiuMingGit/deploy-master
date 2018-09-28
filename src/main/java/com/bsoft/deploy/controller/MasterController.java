@@ -5,7 +5,9 @@ import com.bsoft.deploy.context.Constant;
 import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.dao.entity.App;
 import com.bsoft.deploy.dao.entity.AppPackage;
+import com.bsoft.deploy.dao.entity.Order;
 import com.bsoft.deploy.http.HttpResult;
+import com.bsoft.deploy.send.CmdSender;
 import com.bsoft.deploy.service.AppService;
 import com.bsoft.deploy.service.SlaveService;
 import com.bsoft.deploy.utils.FileUtils;
@@ -24,7 +26,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.nio.channels.FileChannel;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 主节点restful api
@@ -101,8 +105,26 @@ public class MasterController {
         } else {
             appService.updateApp(app);
         }
-        Global.getAppStore().reloadAll();
+
         return new HttpResult(app);
+    }
+
+    /**
+     * 重置所有缓存
+     *
+     * @return HttpResult
+     */
+    @RequestMapping(value = {"/reload"}, method = RequestMethod.GET)
+    public HttpResult reload() {
+        Global.getSlaveStore().reloadAll();
+        Global.getAppStore().reloadAll();
+        Order order = new Order();
+        order.setType(Constant.CMD_RELOAD_CACHE);
+        Map<String, Object> req = new HashMap<>();
+        req.put("target", "ALL");
+        order.setReqData(req);
+        CmdSender.handOut(order);
+        return new HttpResult();
     }
 
 

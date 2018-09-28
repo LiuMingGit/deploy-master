@@ -2,7 +2,6 @@ package com.bsoft.deploy.controller;
 
 import com.alibaba.druid.support.json.JSONUtils;
 import com.alibaba.fastjson.JSON;
-import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.dao.entity.Slave;
 import com.bsoft.deploy.dao.entity.SlaveApp;
 import com.bsoft.deploy.exception.SlaveOfflineException;
@@ -74,8 +73,6 @@ public class SlaveController {
         } else {
             slaveService.updateSlave(slave);
         }
-        Global.getSlaveStore().reloadAll();
-        slaveService.reloadCache();
         return new HttpResult(slave);
     }
 
@@ -95,7 +92,6 @@ public class SlaveController {
             slaveService.saveSlaveApp(slaveApp);
         } else {
             slaveService.updateSlaveApp(slaveApp);
-            Global.getSlaveStore().reloadSlaveApp(slaveApp.getId());
         }
 
         return new HttpResult(slaveApp);
@@ -276,11 +272,7 @@ public class SlaveController {
         return new HttpResult(slaveService.stopTomcat(slaveAppId));
     }
 
-    @RequestMapping(value = {"/reload"}, method = RequestMethod.GET)
-    public HttpResult reload() {
-        slaveService.reloadCache();
-        return new HttpResult();
-    }
+
 
     @RequestMapping(value = {"/dumpThread"}, method = RequestMethod.GET)
     public ResponseEntity<ByteArrayResource> dumpThread(int slaveAppId) {

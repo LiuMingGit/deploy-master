@@ -48,6 +48,7 @@ public class SlaveService {
 
     public void updateSlave(Slave slave) {
         slaveMapper.update(slave);
+        reload(slave.getId());
     }
 
     public void saveSlaveApp(SlaveApp slaveApp) {
@@ -56,6 +57,7 @@ public class SlaveService {
 
     public void updateSlaveApp(SlaveApp slaveApp) {
         slaveMapper.updateSlaveApp(slaveApp);
+        reloadSlaveApp(slaveApp.getId());
     }
 
     public Slave findSlave(int id) {
@@ -72,7 +74,9 @@ public class SlaveService {
 
     public void deleteSlave(int id) {
         slaveMapper.delete(id);
+        reload(id);
     }
+
     public Map isTomcatRun(int slaveAppId) {
         try {
             return _handOut(Constant.CMD_IS_TOMCAT_RUN, slaveAppId);
@@ -93,9 +97,28 @@ public class SlaveService {
         return _handOut(Constant.CMD_THREAD_DUMP, slaveAppId);
     }
 
-    public void reloadCache() {
+    public void reload(int slaveId) {
+        Global.getSlaveStore().reloadSlave(slaveId);
+
         Order order = new Order();
         order.setType(Constant.CMD_RELOAD_CACHE);
+        Map<String, Object> req = new HashMap<>();
+        req.put("target", "slave");
+        // 0 表示全部
+        req.put("id", slaveId);
+        order.setReqData(req);
+        CmdSender.handOut(order);
+    }
+
+    public void reloadSlaveApp(int slaveAppId) {
+        Global.getSlaveStore().reloadSlaveApp(slaveAppId);
+        Order order = new Order();
+        order.setType(Constant.CMD_RELOAD_CACHE);
+        Map<String, Object> req = new HashMap<>();
+        req.put("target", "slaveApp");
+        // 0 表示全部
+        req.put("id", slaveAppId);
+        order.setReqData(req);
         CmdSender.handOut(order);
     }
 
@@ -108,7 +131,6 @@ public class SlaveService {
         CmdSender.handOutSync(order, target);
         return order.getRespData();
     }
-
 
 
 }

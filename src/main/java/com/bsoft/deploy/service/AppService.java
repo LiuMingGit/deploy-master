@@ -1,11 +1,14 @@
 package com.bsoft.deploy.service;
 
+import com.bsoft.deploy.context.Constant;
 import com.bsoft.deploy.context.Global;
 import com.bsoft.deploy.dao.entity.App;
 import com.bsoft.deploy.dao.entity.AppPackage;
 import com.bsoft.deploy.dao.entity.Guard;
+import com.bsoft.deploy.dao.entity.Order;
 import com.bsoft.deploy.dao.mapper.AppMapper;
 import com.bsoft.deploy.file.FileWalker;
+import com.bsoft.deploy.send.CmdSender;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -96,6 +99,22 @@ public class AppService {
             res.put("code", 9);
             return res;
         }
+    }
+
+    public void reloadCache(int appId) {
+        Order order = new Order();
+        order.setType(Constant.CMD_RELOAD_CACHE);
+        Map<String,Object> req = new HashMap<>();
+        req.put("target","app");
+        // 0 表示全部
+        req.put("id",appId);
+        order.setReqData(req);
+        CmdSender.handOut(order);
+    }
+
+    public void reloadCache() {
+        Global.getAppStore().reloadAll();
+        reloadCache(0);
     }
 
     public Guard slaveAppGuard(int slaveAppId) {

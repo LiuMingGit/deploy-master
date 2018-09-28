@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,7 +72,7 @@ public class FileController {
     @RequestMapping(value = {"/fileProp"}, method = RequestMethod.GET)
     public HttpResult fileProp(@RequestParam int appId, @RequestParam int pkgId) {
         HashMap<String, Object> prop = new HashMap<>(2);
-        String path = Global.getAppStore().getApp(appId).getPath() + File.separator + "version_" + pkgId + File.separator;
+        String path = FileUtils.pathFormat(Global.getAppStore().getApp(appId).getPath() + File.separator + "version_" + pkgId + File.separator);
         FileWalker fw = Global.getAppContext().getBean(FileWalker.class);
         prop.put("appPath", path);
         prop.put("appFileCount", fw.getFilesCount(new File(path)));
@@ -92,14 +93,40 @@ public class FileController {
         String path = (String) data.get("path");
         String fileName = (String) data.get("name");
         FileDTO file = appFileService.loadAppIgnoreFile(appId, path);
-        if(file == null) {
+        if (file == null) {
             file = new FileDTO();
             file.setAppId(appId);
             file.setFilename(fileName);
             file.setPath(path);
+            file.setSign(1);
+            file.setOptime(new Date());
             appFileService.saveAppFile(file);
         }
         return new HttpResult();
     }
 
+
+    /**
+     * 更新忽略的文件列表
+     *
+     * @param appId
+     * @return
+     */
+    @RequestMapping(value = {"/ignore/list"}, method = RequestMethod.GET)
+    public HttpResult ignoreList(int appId) {
+        List<FileDTO> file = appFileService.loadAppIgnoreFiles(appId);
+        return new HttpResult(file);
+    }
+
+    /**
+     * 删除更新忽略的文件
+     *
+     * @param id
+     * @return
+     */
+    @RequestMapping(value = {"/ignore/remove"}, method = RequestMethod.GET)
+    public HttpResult removeIgnoreFile(int id) {
+        appFileService.removeAppIgnoreFile(id);
+        return new HttpResult();
+    }
 }

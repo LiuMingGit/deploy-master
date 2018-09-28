@@ -59,6 +59,29 @@ public class FileWalker {
         return totalCount;
     }
 
+    public List<FileDTO> getFiles(File dir, AppPackage appPackage) {
+        List<FileDTO> fileList = new ArrayList<>();
+        if (!dir.exists()) {
+            return null;
+        }
+        File[] files = dir.listFiles();
+        for (File f : files) {
+            if (f.isDirectory()) {
+                fileList.addAll(getFiles(f, appPackage));
+            } else {
+                FileDTO fileDTO = new FileDTO();
+                fileDTO.setId(0);
+                fileDTO.setMark("none");
+                fileDTO.setPath(f.getAbsolutePath());
+                fileDTO.setFilename(f.getName());
+                fileDTO.setAppId(appPackage.getAppId());
+                fileDTO.setPkgId(appPackage.getId());
+                fileList.add(fileDTO);
+            }
+        }
+        return fileList;
+    }
+
     /**
      * 获取path路径下的文件列表
      *
@@ -336,23 +359,24 @@ class UpdateWorker extends Thread {
         Map<String, Object> req = new HashMap<>();
         req.put("slaveAppId", slaveApp.getId());
         order.setReqData(req);
-        CmdSender.handOutSync(order, slaveApp.getId(), 30 * 1000);
+        CmdSender.handOutSync(order, slaveApp.getId(), 180 * 1000);
     }
 
     private void updates(Slave slave, int startPkgId, int endPkgId) {
         List<AppPackage> packages = appMapper.findUpdates(slaveApp.getAppId(), startPkgId, endPkgId);
         if (packages.size() > 0) {
             for (AppPackage ap : packages) {
-                List<FileDTO> files = appMapper.loadAppPackageFiles(ap.getId());
+                //List<FileDTO> files = appMapper.loadAppPackageFiles(ap.getId());
                 // 判断文件数目是否一致(防止人为修改)
                 String path = Global.getAppStore().getApp(ap.getAppId()).getPath() + File.separator + "version_" + ap.getId() + File.separator;
                 FileWalker fw = Global.getAppContext().getBean(FileWalker.class);
-                long fileCount = fw.getFilesCount(new File(path));
+                /*long fileCount = fw.getFilesCount(new File(path));
                 if (fileCount != files.size()) {
                     guard.setFail(true);
                     guard.setMessage("更新失败,更新包[" + ap.getVersion() + "]更新包被非法修改,请检查更新包!");
                     return;
-                }
+                }*/
+                List<FileDTO> files = fw.getFiles(new File(path), ap);
                 guard.addTotalFiles(files.size());
                 FileSender.handOut(files, slave, guard);
             }
