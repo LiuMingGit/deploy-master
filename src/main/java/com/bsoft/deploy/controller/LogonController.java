@@ -43,7 +43,6 @@ public class LogonController {
         return result;
     }
 
-
     @RequestMapping(value = {"/login"}, method = RequestMethod.POST)
     public HttpResult login(HttpServletRequest request,@RequestBody String jsonData) {
         Map<String, Object> body = (Map<String, Object>) JSONUtils.parse(jsonData);
